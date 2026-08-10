@@ -1,0 +1,29 @@
+.login {
+  background: #e5e5e5;
+  &__wrap {
+    padding: 2.1875rem 2.5rem;
+    width: 35rem;
+
+    @media screen and ( min-width: 1600px ) {
+      width: 25rem;
+    }
+  }
+  &__logo {
+    margin-bottom: 2.5rem;
+  }
+
+  .login-form-button, .user, .password {
+    width: 100%;
+    border-radius: 4px;
+  }
+}
+
+.hiddeArrowsInput::-webkit-inner-spin-button,
+.hiddeArrowsInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.hiddeArrowsInput {
+  -moz-appearance: textfield;
+}

@@ -1,0 +1,17 @@
+.ai-model-item {
+  border: 1px solid #d2d5d9;
+  border-radius: 10px;
+}
+.limit-lines {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shadow-hover-item {
+  box-shadow: 10px 10px 10px 0px #00000040;
+}
+.shadow-hover-item:hover {
+  box-shadow: 10px 10px 10px 10px #00000040;
+}

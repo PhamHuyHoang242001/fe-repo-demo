@@ -1,0 +1,10 @@
+@font-face {
+    font-family: 'SVN-Gilroy';
+    src: url('./assets/fonts/SVN-Gilroy-Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+  }
+  
+body {
+    font-family: 'SVN-Gilroy', 'Inter', sans-serif !important;
+}

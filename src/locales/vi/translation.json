@@ -1,0 +1,17 @@
+{
+  "common": {
+    "create": "Thêm mới",
+    "edit": "Sửa",
+    "delete": "Xóa",
+    "save": "Lưu",
+    "close": "Đóng",
+    "yes": "Đồng ý",
+    "cancel": "Hủy",
+    "overview": "Tổng quan"
+  },
+  "login": {
+    "data": "Let Data Empowers your Business and Drive Innovation",
+    "remember": "Remember login",
+    "footer": "Ⓒ 2024 All rights reserved. This is Your Enterprise Data & Analytics (VPBank)"
+  }
+}

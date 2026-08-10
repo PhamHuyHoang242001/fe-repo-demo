@@ -1,0 +1,14 @@
+.border-propensity-item {
+  border: 1px solid #d2d5d9;
+  border-radius: 14px;
+}
+.line-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 6; /* Số dòng muốn hiển thị */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shadow-hover-bnt:hover {
+  box-shadow: 3px 3px 3px 3px #00000040;
+}
