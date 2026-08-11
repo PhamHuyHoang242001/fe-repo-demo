@@ -9,6 +9,8 @@ import { history } from 'routes/history';
 const LoginPage = loadable(() => import('pages/auth/views/Login'));
 const ForgotPassword = loadable(() => import('pages/auth/views/ForgotPassword'));
 const DefaultLayout = loadable(() => import('layouts/DefaultLayout'));
+// Isolated module: layout/guard riêng, KHÔNG đi qua DefaultLayout.
+const AssetHubApp = loadable(() => import('@/modules/asset-hub/AssetHubApp'));
 
 const CustomRouter = ({ history, ...props }) => {
   const [state, setState] = useState({
@@ -27,6 +29,7 @@ export const App: React.FC = () => {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/asset-hub/*" element={<AssetHubApp />} />
         <Route path="/*" element={<DefaultLayout />} />
       </Routes>
     </CustomRouter>

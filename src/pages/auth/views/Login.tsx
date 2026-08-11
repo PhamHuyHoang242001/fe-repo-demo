@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Form, Input, Button, Checkbox } from 'antd';
 import { useNavigate, Link } from 'react-router-dom';
 import { destroyLogged, isLogin, saveRefreshToken, saveToken, saveUserInfor } from 'utils/jwt';
-import { loginApi } from './../api/index';
+import { loginApi, fetchProfileApi } from './../api/index';
 import '../styles/login.scss';
 import { LoginReq } from 'types/login';
 // import { ERROR_CODE } from '../../../types/api';
@@ -29,11 +29,20 @@ const Login: React.FC = (): JSX.Element => {
 
     try {
       const res = await loginApi(values);
-      if (res) {
+      // Backend NestJS trả { token, refresh_token, ... } (không còn shape Strapi res.jwt).
+      if (res?.token) {
         await destroyLogged();
-        saveToken(res.jwt.accessToken);
-        saveRefreshToken(res.jwt.refreshToken);
-        saveUserInfor(res.user);
+        saveToken(res.token);
+        if (res.refresh_token) saveRefreshToken(res.refresh_token);
+
+        // Login không kèm user → lấy hồ sơ qua fetch-profile (Bearer) để Sidebar có email.
+        try {
+          const profile = await fetchProfileApi();
+          if (profile) saveUserInfor(profile);
+        } catch {
+          // Không chặn đăng nhập nếu fetch-profile lỗi; user vẫn vào được app.
+        }
+
         navigate('/home');
       }
       setLoading(false);
@@ -60,11 +69,11 @@ const Login: React.FC = (): JSX.Element => {
               labelCol={{ span: 24 }}
               wrapperCol={{ span: 24 }}
               name="normal_login"
-              className=" mt-10"
+              className="mt-10 "
               onFinish={onSubmitForm}
             >
               <Form.Item
-                name="identifier"
+                name="email"
                 // rules={[
                 //   { required: true, message: ERROR_CODE.A001 },
                 //   { type: 'email', message: ERROR_CODE.A002 },
@@ -104,10 +113,22 @@ const Login: React.FC = (): JSX.Element => {
                 </button>
               </Form.Item>
             </Form>
+            {/* Lối vào isolated module — layout độc lập, không dùng chung base cũ */}
+            <button
+              type="button"
+              onClick={() => navigate('/asset-hub')}
+              className="mt-8 flex w-[360px] items-center justify-between rounded-2xl border border-ah-line bg-ah-card px-6 py-4 text-left transition hover:border-ah-green hover:shadow-sm"
+            >
+              <div>
+                <div className="text-sm font-semibold text-ah-ink">AI Asset Hub</div>
+                <div className="text-xs text-ah-muted">Khu vực làm việc độc lập</div>
+              </div>
+              <span className="text-ah-green">&rarr;</span>
+            </button>
           </div>
         </div>
         <div className="flex w-1/2">
-          <img src={placehlderImage} alt="image_placehlder_1" className="w-2/3 h-fit mx-auto my-auto" />
+          <img src={placehlderImage} alt="image_placehlder_1" className="w-2/3 mx-auto my-auto h-fit" />
         </div>
       </div>
       <Footer />

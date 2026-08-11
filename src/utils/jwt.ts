@@ -13,8 +13,12 @@ export const getAccessToken = () => {
   return getLocalStorageByKey(APP_CONFIG.tokenKey) || null;
 };
 export const getUserInfor = () => {
-  // return JSON.parse(getCookie(APP_CONFIG.user)) || null;
-  return JSON.parse(getLocalStorageByKey(APP_CONFIG.user)) || null;
+  // Chuỗi rỗng / JSON hỏng → trả null thay vì ném lỗi (tránh crash Sidebar khi chưa có user).
+  try {
+    return JSON.parse(getLocalStorageByKey(APP_CONFIG.user)) || null;
+  } catch {
+    return null;
+  }
 };
 
 export const getRefreshToken = () => {
@@ -23,8 +27,11 @@ export const getRefreshToken = () => {
 };
 
 export const getAuth = () => {
-  // return JSON.parse(getCookie(APP_CONFIG.profileKey)) || null;
-  return JSON.parse(getLocalStorageByKey(APP_CONFIG.user)) || null;
+  try {
+    return JSON.parse(getLocalStorageByKey(APP_CONFIG.user)) || null;
+  } catch {
+    return null;
+  }
 };
 
 export const saveToken = (accessToken: string, exdays = 1) => {
