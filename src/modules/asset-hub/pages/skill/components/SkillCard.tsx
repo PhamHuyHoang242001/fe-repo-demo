@@ -1,10 +1,16 @@
-// Single card in the published skill grid.
-// Avatar: renders <img> when avatar_url (Strapi path) is present; falls back to initials placeholder.
+// Single card in the published skill grid — "hero" treatment.
+// Avatar: renders <img> when avatar_url is present; falls back to initials placeholder.
 // Click navigates to /asset-hub/skill/:id.
+// Animation: MotionCard (staggerItem variant + hoverLift). Glow border on hover.
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import type { SkillListItem } from '../types';
+import { GRADIENT_BORDER_HOVER, GRADIENT_BORDER_MASK } from '../../../theme/surfaces';
+import { hoverPress, hoverLift, staggerItem } from '../../../theme/motion';
+import { formatBytes, formatDate } from '../utils/format';
+import { MotionCard } from './motion-primitives';
 
 interface SkillCardProps {
   skill: SkillListItem;
@@ -21,7 +27,6 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const AvatarPlaceholder: React.FC<{ name: string }> = ({ name }) => {
-  // Initials from first two words of name
   const initials = name
     .split(/\s+/)
     .slice(0, 2)
@@ -29,7 +34,7 @@ const AvatarPlaceholder: React.FC<{ name: string }> = ({ name }) => {
     .join('');
 
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ah-green-l text-sm font-bold text-ah-green-d">
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-ah-green-l text-sm font-bold text-ah-green-d ring-2 ring-ah-green/20">
       {initials || '?'}
     </div>
   );
@@ -40,7 +45,6 @@ interface AvatarProps {
   avatarUrl?: string | null;
 }
 
-// Renders the Strapi avatar image when available; falls back to initials on load error or absence.
 const Avatar: React.FC<AvatarProps> = ({ name, avatarUrl }) => {
   const [imgFailed, setImgFailed] = React.useState(false);
 
@@ -49,7 +53,7 @@ const Avatar: React.FC<AvatarProps> = ({ name, avatarUrl }) => {
       <img
         src={avatarUrl}
         alt={name}
-        className="h-12 w-12 shrink-0 rounded-xl object-cover"
+        className="h-12 w-12 shrink-0 rounded-xl object-cover ring-2 ring-ah-green/20 shadow-ah-glow-sm"
         onError={() => setImgFailed(true)}
       />
     );
@@ -62,49 +66,71 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill }) => {
   const { active_version: v } = skill;
 
   return (
-    <button
-      type="button"
+    <MotionCard
+      className="group relative flex h-full cursor-pointer flex-col gap-3 overflow-hidden p-5 shadow-ah-float-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ah-green/60"
       onClick={() => navigate(`/asset-hub/skill/${skill.id}`)}
-      className="flex flex-col gap-3 rounded-xl border border-ah-line bg-ah-card p-4 text-left transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ah-green"
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && navigate(`/asset-hub/skill/${skill.id}`)}
     >
+      {/* Gradient border revealed on hover (masked overlay — see GRADIENT_BORDER_HOVER) */}
+      <span aria-hidden className={GRADIENT_BORDER_HOVER} style={GRADIENT_BORDER_MASK} />
+
       {/* Header row: avatar + name + version badge */}
       <div className="flex items-start gap-3">
         <Avatar name={v.name} avatarUrl={v.avatar_url} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="truncate text-sm font-bold text-ah-ink">{v.name}</span>
-            <span className="shrink-0 rounded-full bg-ah-green-l px-2 py-0.5 text-[10px] font-semibold text-ah-green-d">
-              v{v.version_no}
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-sm font-bold text-ah-ink transition-colors group-hover:text-ah-green-d">
+              {v.name}
             </span>
+            <motion.span
+              {...hoverPress}
+              className="shrink-0 rounded-md border border-ah-green/30 bg-ah-green-l px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-ah-green-d"
+            >
+              v{v.version_no}
+            </motion.span>
           </div>
-          <span className="mt-0.5 inline-block rounded-md bg-ah-pale px-2 py-0.5 text-[10px] font-medium text-ah-muted">
+          {/* Category pill — full border, full rounded */}
+          <span className="mt-1.5 inline-flex items-center rounded-full border border-ah-line bg-ah-pale px-2 py-0.5 text-[10px] font-semibold text-ah-muted">
             {CATEGORY_LABELS[v.category] ?? v.category}
           </span>
         </div>
       </div>
 
-      {/* Short description */}
-      <p className="line-clamp-2 text-xs text-ah-muted">{v.short_description}</p>
+      {/* Short description — fixed 2-line height keeps cards aligned */}
+      <p className="line-clamp-2 min-h-[2.5rem] text-xs leading-relaxed text-ah-muted">
+        {v.short_description}
+      </p>
 
-      {/* Tags */}
+      {/* Tags — full-border pills */}
       {v.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="mt-auto flex flex-wrap gap-1">
           {v.tags.slice(0, 4).map((tag) => (
-            <span
+            <motion.span
               key={tag}
-              className="rounded-full border border-ah-line bg-ah-bg px-2 py-0.5 text-[10px] text-ah-muted"
+              {...hoverPress}
+              className="rounded-full border border-ah-line bg-ah-pale px-2 py-0.5 text-[10px] font-medium text-ah-muted transition-colors hover:border-ah-green/40 hover:text-ah-green-d"
             >
               {tag}
-            </span>
+            </motion.span>
           ))}
           {v.tags.length > 4 && (
-            <span className="rounded-full border border-ah-line bg-ah-bg px-2 py-0.5 text-[10px] text-ah-muted">
+            <span className="rounded-full border border-ah-line bg-ah-pale px-2 py-0.5 text-[10px] font-medium text-ah-muted">
               +{v.tags.length - 4}
             </span>
           )}
         </div>
       )}
-    </button>
+
+      {/* Footer meta — zip size + last updated, pinned to baseline */}
+      <div
+        className={`flex items-center justify-between border-t border-ah-line pt-3 text-[10px] text-ah-muted ${v.tags.length > 0 ? '' : 'mt-auto'}`}
+      >
+        <span className="tabular-nums">{formatBytes(v.file?.size) || '—'}</span>
+        <span className="tabular-nums">{formatDate(v.updated_at)}</span>
+      </div>
+    </MotionCard>
   );
 };
 

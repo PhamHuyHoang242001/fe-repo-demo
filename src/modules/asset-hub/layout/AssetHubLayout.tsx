@@ -24,7 +24,7 @@ const AssetHubLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   return (
     <div
-      className={`relative box-border grid min-h-screen ${cols} grid-rows-[58px_1fr] bg-ah-bg text-ah-ink transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none`}
+      className={`relative box-border grid h-screen overflow-hidden ${cols} grid-rows-[58px_1fr] bg-ah-bg text-ah-ink transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none`}
     >
       <AssetHubBrand collapsed={collapsed} />
       <AssetHubHeader />

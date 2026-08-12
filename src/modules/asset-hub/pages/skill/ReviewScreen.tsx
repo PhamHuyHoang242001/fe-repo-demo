@@ -2,13 +2,19 @@
 // C3/C4: 403 on diff() shown as a permission banner — no crash.
 // base===null → DiffView renders "first version" preview.
 // Action bar (Approve/Reject) only rendered when canApprove=true.
+// Visual: full-frame frosted panels, antd Buttons, framer-motion entrances.
 
 import React, { useState, useEffect } from 'react';
+import { Button } from 'antd';
+import { motion, AnimatePresence } from 'framer-motion';
 import { diff as fetchDiff, approve } from './api/skillApi';
 import type { SkillDiff } from './types';
 import DiffView from './components/DiffView';
 import RejectModal from './components/RejectModal';
 import { StateBadge, MetaRow, SpinnerRow, ErrorBanner } from './components/ReviewShared';
+import { Reveal, StaggerList, StaggerItem } from './components/motion-primitives';
+import { CARD_BASE, SURFACE_GLASS } from '../../theme/surfaces';
+import { fadeInUp, hoverPress } from '../../theme/motion';
 
 interface ReviewScreenProps {
   versionId: number;
@@ -19,9 +25,68 @@ interface ReviewScreenProps {
 
 type ScreenState = 'loading' | 'error' | 'forbidden' | 'ready';
 
-const ReviewScreen: React.FC<ReviewScreenProps> = ({
-  versionId, canApprove, onBack, onActionComplete,
-}) => {
+// ---- Back button ---------------------------------------------------------------
+const BackBtn: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+  <motion.button {...hoverPress} onClick={onClick}
+    className="rounded-xl p-1.5 text-ah-muted transition-colors hover:bg-ah-pale hover:text-ah-ink"
+    aria-label="Quay lại">
+    <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+      <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
+    </svg>
+  </motion.button>
+);
+
+// ---- Metadata panel (staggered rows) ------------------------------------------
+const MetaPanel: React.FC<{ meta: SkillDiff['metadata'] }> = ({ meta }) => (
+  <motion.div variants={fadeInUp} initial="hidden" animate="show" className={`${CARD_BASE} px-5 py-4`}>
+    <StaggerList>
+      <div className="flex flex-col gap-2.5">
+        <StaggerItem><MetaRow label="Category" value={meta.category} /></StaggerItem>
+        {meta.tags.length > 0 && (
+          <StaggerItem>
+            <MetaRow label="Tags" value={
+              <div className="flex flex-wrap gap-1">
+                {meta.tags.map((t) => (
+                  <span key={t} className="rounded-full border border-ah-line bg-ah-card px-2 py-0.5 text-[11px] text-ah-muted">{t}</span>
+                ))}
+              </div>
+            } />
+          </StaggerItem>
+        )}
+        <StaggerItem><MetaRow label="Submitted by" value={meta.submitted_by_email ?? `#${meta.submitted_by}`} /></StaggerItem>
+        <StaggerItem><MetaRow label="Submitted at" value={new Date(meta.submitted_at).toLocaleString('vi-VN')} /></StaggerItem>
+        {meta.changelog_note && (
+          <StaggerItem><MetaRow label="Changelog" value={<span className="italic">{meta.changelog_note}</span>} /></StaggerItem>
+        )}
+      </div>
+    </StaggerList>
+  </motion.div>
+);
+
+// ---- Action bar (approve/reject antd Buttons) ---------------------------------
+interface ActionBarProps {
+  approving: boolean;
+  approveError: string | null;
+  onApprove: () => void;
+  onReject: () => void;
+}
+const ActionBar: React.FC<ActionBarProps> = ({ approving, approveError, onApprove, onReject }) => (
+  <motion.div variants={fadeInUp} initial="hidden" animate="show" className={`${SURFACE_GLASS} px-5 py-4`}>
+    {approveError && (
+      <div className="mb-3 rounded-xl border border-ah-red bg-ah-red-l px-3 py-2.5 text-sm text-ah-red">{approveError}</div>
+    )}
+    <div className="flex gap-3">
+      <Button type="primary" size="large" loading={approving} disabled={approving} onClick={onApprove}>
+        {approving ? 'Đang duyệt…' : 'Duyệt'}
+      </Button>
+      <Button danger size="large" disabled={approving} onClick={onReject}>Từ chối</Button>
+    </div>
+  </motion.div>
+);
+
+// ---- Main component -----------------------------------------------------------
+
+const ReviewScreen: React.FC<ReviewScreenProps> = ({ versionId, canApprove, onBack, onActionComplete }) => {
   const [state, setState] = useState<ScreenState>('loading');
   const [diffData, setDiffData] = useState<SkillDiff | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -33,19 +98,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
   useEffect(() => {
     let cancelled = false;
     setState('loading'); setDiffData(null); setErrorMsg('');
-
     fetchDiff(versionId)
       .then((data) => { if (!cancelled) { setDiffData(data); setState('ready'); } })
       .catch((err: unknown) => {
         if (cancelled) return;
         const status = (err as any)?.response?.status ?? 0;
-        if (status === 403) { setState('forbidden'); }
-        else {
-          setErrorMsg((err as any)?.response?.data?.message || (err as Error)?.message || 'Không thể tải diff.');
-          setState('error');
-        }
+        if (status === 403) setState('forbidden');
+        else { setErrorMsg((err as any)?.response?.data?.message || (err as Error)?.message || 'Không thể tải diff.'); setState('error'); }
       });
-
     return () => { cancelled = true; };
   }, [versionId]);
 
@@ -77,60 +137,40 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-5 right-5 z-40 rounded-lg border border-ah-green bg-ah-green-l px-4 py-2.5 text-sm font-semibold text-ah-green shadow-md">
-          {toast}
-        </div>
-      )}
+      {/* Toast — animated in/out */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div key="toast"
+            initial={{ opacity: 0, y: -12, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.97 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed top-5 right-5 z-40 rounded-2xl border border-ah-green bg-ah-green-l px-4 py-2.5 text-sm font-semibold text-ah-green shadow-ah-glow"
+          >
+            {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Back + title */}
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="rounded-md p-1 text-ah-muted hover:bg-ah-pale hover:text-ah-ink transition-colors">
-          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clipRule="evenodd" />
-          </svg>
-        </button>
-        <h2 className="text-base font-bold text-ah-ink">{meta.name} — v{meta.version_no}</h2>
-        <StateBadge state={meta.state} />
-      </div>
+      <Reveal>
+        <div className="flex items-center gap-3">
+          <BackBtn onClick={onBack} />
+          <h2 className="text-base font-bold text-ah-ink">{meta.name} — v{meta.version_no}</h2>
+          <StateBadge state={meta.state} />
+        </div>
+      </Reveal>
 
-      {/* Metadata */}
-      <div className="rounded-xl border border-ah-line bg-ah-pale px-5 py-4 flex flex-col gap-2">
-        <MetaRow label="Category" value={meta.category} />
-        {meta.tags.length > 0 && (
-          <MetaRow label="Tags" value={
-            <div className="flex flex-wrap gap-1">
-              {meta.tags.map((t) => (
-                <span key={t} className="rounded-full border border-ah-line bg-ah-card px-2 py-0.5 text-[11px] text-ah-muted">{t}</span>
-              ))}
-            </div>
-          } />
-        )}
-        <MetaRow label="Submitted by" value={`#${meta.submitted_by}`} />
-        <MetaRow label="Submitted at" value={new Date(meta.submitted_at).toLocaleString('vi-VN')} />
-        {meta.changelog_note && <MetaRow label="Changelog" value={<span className="italic">{meta.changelog_note}</span>} />}
-      </div>
-
-      {/* Diff viewer */}
+      <MetaPanel meta={meta} />
       <DiffView base={diffData!.base} incoming={diffData!.incoming} />
 
-      {/* Action bar — approver only */}
       {canApprove && (
-        <div className="flex flex-col gap-2 rounded-xl border border-ah-line bg-ah-pale px-5 py-4">
-          {approveError && <div className="rounded-lg border border-ah-red bg-ah-red-l px-3 py-2 text-sm text-ah-red">{approveError}</div>}
-          <div className="flex gap-3">
-            <button onClick={handleApprove} disabled={approving}
-              className="flex items-center gap-2 rounded-lg bg-ah-green px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-ah-green-d disabled:cursor-not-allowed disabled:opacity-50">
-              {approving && <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
-              {approving ? 'Đang duyệt…' : 'Duyệt'}
-            </button>
-            <button onClick={() => setShowRejectModal(true)} disabled={approving}
-              className="rounded-lg border border-ah-red px-5 py-2 text-sm font-semibold text-ah-red transition-colors hover:bg-ah-red-l disabled:cursor-not-allowed disabled:opacity-50">
-              Từ chối
-            </button>
-          </div>
-        </div>
+        <ActionBar
+          approving={approving}
+          approveError={approveError}
+          onApprove={handleApprove}
+          onReject={() => setShowRejectModal(true)}
+        />
       )}
 
       {showRejectModal && (

@@ -1,105 +1,120 @@
-// Skill Package workspace — 3-tab shell.
-// This component OWNS all tab mount points and gating so Phases 4/5/6 only
-// fill their respective tab file without touching this file.
+// Skill Package workspace — tabbed shell with animated pill tab bar.
 //
-// Tab visibility (M4 gating):
-//   "Danh sách"  — always visible (view open to all authenticated users)
-//   "Chờ duyệt"  — visible when canApprove || canUpload
-//   "Upload"     — visible when canUpload only
-import React, { useState } from 'react';
+// Tab visibility (role gating):
+//   "Danh sách"      — always visible (view open to all authenticated users)
+//   "My Skill"       — visible when canUpload (the caller's own skills, all statuses)
+//   "Chờ phê duyệt"  — visible when canApprove only (all pending versions)
+// Upload is NOT a tab — it's a header button (canUpload) → /asset-hub/skill/upload.
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useSkillPermissions } from './hooks/useSkillPermissions';
+import { list as listSkills, reviews as listReviews, mySkills as listMySkills } from './api/skillApi';
 import PublishedList from './tabs/PublishedList';
 import ReviewQueue from './tabs/ReviewQueue';
-import UploadForm from './tabs/UploadForm';
+import MySkills from './tabs/MySkills';
+import SkillTabBar, { type TabKey } from './components/SkillTabBar';
+import { fadeInUp, springSnappy } from '../../theme/motion';
+import { SURFACE_HERO } from '../../theme/surfaces';
 
-// ---- Types -------------------------------------------------------------------
+// ---- Panel transition variants -----------------------------------------------
 
-type TabKey = 'list' | 'review' | 'upload';
-
-interface Tab {
-  key: TabKey;
-  label: string;
-  panel: React.ReactNode;
-}
+const panelVariants = {
+  enter: { opacity: 0, y: 10 },
+  center: { opacity: 1, y: 0, transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, y: -6, transition: { duration: 0.16, ease: [0.4, 0, 1, 1] } },
+};
 
 // ---- Sub-components ----------------------------------------------------------
 
 const LoadingState: React.FC = () => (
-  <div className="flex h-full items-center justify-center">
+  <div className="flex h-full items-center justify-center gap-3">
     <div className="h-6 w-6 animate-spin rounded-full border-2 border-ah-line border-t-ah-green" />
-    <span className="ml-3 text-sm text-ah-muted">Đang tải quyền hạn…</span>
+    <span className="text-sm text-ah-muted">Đang tải quyền hạn…</span>
   </div>
 );
 
-interface ErrorStateProps {
-  message: string;
-  onRetry: () => void;
-}
-
-const ErrorState: React.FC<ErrorStateProps> = ({ message, onRetry }) => (
+const ErrorState: React.FC<{ message: string; onRetry: () => void }> = ({ message, onRetry }) => (
   <div className="flex h-full flex-col items-center justify-center gap-3">
     <p className="text-sm text-ah-red">{message}</p>
     <button
       onClick={onRetry}
-      className="rounded-lg bg-ah-green px-4 py-2 text-sm font-semibold text-white hover:bg-ah-green-d transition-colors"
+      className="rounded-xl bg-ah-green px-5 py-2 text-sm font-bold text-white shadow transition-colors hover:bg-ah-green-d"
     >
       Thử lại
     </button>
   </div>
 );
 
-// ---- Tab bar -----------------------------------------------------------------
-
-interface TabBarProps {
-  tabs: Tab[];
-  active: TabKey;
-  onChange: (key: TabKey) => void;
-}
-
-const TabBar: React.FC<TabBarProps> = ({ tabs, active, onChange }) => (
-  <div className="flex gap-1 border-b border-ah-line">
-    {tabs.map((tab) => (
-      <button
-        key={tab.key}
-        onClick={() => onChange(tab.key)}
-        className={[
-          'px-4 py-2 text-sm font-semibold transition-colors',
-          active === tab.key
-            ? 'border-b-2 border-ah-green text-ah-green'
-            : 'text-ah-muted hover:text-ah-ink',
-        ].join(' ')}
-      >
-        {tab.label}
-      </button>
-    ))}
-  </div>
-);
-
 // ---- Main component ----------------------------------------------------------
 
 const SkillPackage: React.FC = () => {
+  const navigate = useNavigate();
   const { data: perms, loading, error, refetch } = useSkillPermissions();
   const [activeTab, setActiveTab] = useState<TabKey>('list');
+  const [counts, setCounts] = useState<{ list?: number; mine?: number; review?: number }>({});
 
-  // Breadcrumb
-  const crumb = (
-    <div className="text-[11px] font-semibold uppercase tracking-wider text-ah-muted">
-      Tài sản ứng dụng › Skill
-    </div>
-  );
+  const canUpload = perms?.canUpload ?? false;
+  const canApprove = perms?.canApprove ?? false;
 
-  const heading = (
-    <h1 className="mt-1 mb-4 text-[22px] font-extrabold tracking-tight text-ah-green-d">
-      Skill Package
-    </h1>
+  // Lightweight tab-count badges: read meta.total with limit=1 (tiny payload).
+  // Failures swallowed — badge simply omitted.
+  useEffect(() => {
+    if (loading || error) return;
+    let cancelled = false;
+    listSkills({ limit: 1 })
+      .then((r) => !cancelled && setCounts((c) => ({ ...c, list: r.meta.total })))
+      .catch(() => {});
+    if (canUpload) {
+      listMySkills({ limit: 1 })
+        .then((r) => !cancelled && setCounts((c) => ({ ...c, mine: r.meta.total })))
+        .catch(() => {});
+    }
+    if (canApprove) {
+      listReviews({ scope: 'all', limit: 1 })
+        .then((r) => !cancelled && setCounts((c) => ({ ...c, review: r.meta.total })))
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [loading, error, canApprove, canUpload]);
+
+  const header = (
+    <motion.div
+      variants={fadeInUp}
+      initial="hidden"
+      animate="show"
+      className="mb-5 flex items-start justify-between gap-4"
+    >
+      <div>
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-ah-muted">
+          Tài sản ứng dụng › Skill
+        </div>
+        <h1 className="mt-1.5 text-[22px] font-extrabold leading-tight tracking-tight text-ah-green-d">
+          Skill Package
+        </h1>
+        <p className="mt-1 text-[13px] leading-relaxed text-ah-muted">
+          Duyệt, chia sẻ và quản lý các gói skill dùng chung trong tổ chức.
+        </p>
+      </div>
+      {canUpload && (
+        <motion.button
+          type="button"
+          onClick={() => navigate('/asset-hub/skill/upload')}
+          whileHover={{ y: -2, transition: springSnappy }}
+          whileTap={{ scale: 0.97 }}
+          className={`shrink-0 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-ah-float transition-shadow hover:shadow-ah-glow ${SURFACE_HERO}`}
+        >
+          + Upload skill
+        </motion.button>
+      )}
+    </motion.div>
   );
 
   if (loading) {
     return (
       <div className="flex h-full flex-col">
-        {crumb}
-        {heading}
-        <div className="flex flex-1 rounded-xl border border-ah-line bg-ah-card">
+        {header}
+        <div className="flex flex-1 rounded-2xl border border-ah-line bg-ah-card shadow-ah-float">
           <LoadingState />
         </div>
       </div>
@@ -109,42 +124,57 @@ const SkillPackage: React.FC = () => {
   if (error) {
     return (
       <div className="flex h-full flex-col">
-        {crumb}
-        {heading}
-        <div className="flex flex-1 rounded-xl border border-ah-line bg-ah-card">
+        {header}
+        <div className="flex flex-1 rounded-2xl border border-ah-line bg-ah-card shadow-ah-float">
           <ErrorState message={error} onRetry={refetch} />
         </div>
       </div>
     );
   }
 
-  // perms is guaranteed non-null when !loading && !error
-  const canUpload = perms?.canUpload ?? false;
-  const canApprove = perms?.canApprove ?? false;
-
-  const tabs: Tab[] = [
-    { key: 'list', label: 'Danh sách', panel: <PublishedList /> },
-    // "Chờ duyệt" shown when user can approve OR has uploaded (to track own submissions)
-    ...(canApprove || canUpload
-      ? [{ key: 'review' as TabKey, label: 'Chờ duyệt', panel: <ReviewQueue /> }]
+  // perms guaranteed non-null when !loading && !error
+  const tabs = [
+    { key: 'list' as TabKey, label: 'Danh sách', count: counts.list, panel: <PublishedList /> },
+    ...(canUpload ? [{ key: 'mine' as TabKey, label: 'My Skill', count: counts.mine, panel: <MySkills /> }] : []),
+    ...(canApprove
+      ? [{ key: 'review' as TabKey, label: 'Chờ phê duyệt', count: counts.review, panel: <ReviewQueue /> }]
       : []),
-    ...(canUpload ? [{ key: 'upload' as TabKey, label: 'Upload', panel: <UploadForm /> }] : []),
   ];
 
-  // Reset to 'list' if active tab is no longer visible after perms load
+  // Reset to 'list' if active tab no longer visible after perms load.
   const visibleKeys = tabs.map((t) => t.key);
   const resolvedActive = visibleKeys.includes(activeTab) ? activeTab : 'list';
-
   const activePanel = tabs.find((t) => t.key === resolvedActive)?.panel;
 
   return (
     <div className="flex h-full flex-col">
-      {crumb}
-      {heading}
-      <div className="flex flex-1 flex-col overflow-hidden rounded-xl border border-ah-line bg-ah-card">
-        <TabBar tabs={tabs} active={resolvedActive} onChange={setActiveTab} />
-        <div className="flex-1 overflow-auto p-4">{activePanel}</div>
-      </div>
+      {header}
+      <motion.div
+        variants={fadeInUp}
+        initial="hidden"
+        animate="show"
+        transition={{ delay: 0.08 }}
+        className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-ah-line bg-ah-card shadow-ah-float"
+      >
+        <SkillTabBar
+          tabs={tabs.map(({ key, label, count }) => ({ key, label, count }))}
+          active={resolvedActive}
+          onChange={setActiveTab}
+        />
+        <div className="flex-1 overflow-auto p-5">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={resolvedActive}
+              variants={panelVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+            >
+              {activePanel}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </motion.div>
     </div>
   );
 };

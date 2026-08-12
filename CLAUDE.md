@@ -30,15 +30,18 @@ Khi build một mảng tính năng mới muốn cô lập khỏi base cũ, dễ 
    └── theme/            # token màu (nguồn chân lý duy nhất)
    ```
 4. **Không import chéo** logic base cũ. Chỉ được dùng util thuần (vd `utils/jwt`).
-5. **Styling: CHỈ Tailwind.** Preflight đang OFF (coexist với antd) — cẩn thận khi cần reset. **Không thêm thư viện mới** trừ khi thật sự cần thiết.
+5. **Styling: Tailwind + antd (đã theme).** Preflight OFF (coexist antd). Ưu tiên Tailwind cho layout; dùng **antd v5** cho input/select/modal… (đã theme ah-* qua `ConfigProvider` trong `AssetHubApp`, prefer `size="large"`). Animation dùng **framer-motion** (đã cài) — variants dùng chung ở `theme/motion.ts`, primitives ở `components/motion-primitives.tsx`.
 6. **Màu:** token hóa trong `tailwind.config.js` theo namespace module (vd `ah-green`), **không hardcode hex** rải rác.
 
 ## [RULE] Tiêu chí UI (bắt buộc)
 
-- Đẹp — **tối giản, không màu mè**.
+- Đẹp — **hiện đại, bold, có chiều sâu & hiệu ứng** (không còn "tối giản phẳng"). Nhiều motion đẹp mắt nhưng **mượt, không gây rối/say** (mức vừa-đậm).
+- **Border khuôn FULL** (đủ 4 cạnh, `rounded-2xl` cho panel/card) — KHÔNG dùng `border-b` nửa chừng. Nghỉ dùng `shadow-ah-float`, hover thêm `shadow-ah-glow` + viền xanh.
+- **Input/Select/Textarea/Modal: dùng antd** (đã theme), không dùng `<input>/<select>` native thô.
+- **Motion:** entrance fade+rise (`Reveal`/`fadeInUp`), list dùng `StaggerList/StaggerItem`, card `hoverLift`, modal `scaleIn` + `AnimatePresence`. Reduced-motion xử lý toàn cục qua `<MotionConfig reducedMotion="user">` — **không** thêm guard `motion-reduce` từng chỗ.
 - Từng icon / text / mã màu **đồng bộ tuyệt đối**, rõ nghĩa, chuẩn chỉ.
-- Code không phức tạp; flow đơn giản, dễ đọc, dễ maintain & phát triển về sau.
-- File component `PascalCase` (đồng bộ repo). File **< 200 dòng**, tách nhỏ theo concern.
+- Design kit (nguồn chân lý): `theme/antd-theme.ts`, `theme/motion.ts`, `theme/surfaces.ts`, `pages/skill/components/motion-primitives.tsx`.
+- File component `PascalCase`. File **< 200 dòng**, tách nhỏ theo concern.
 
 ## Ghi chú
 

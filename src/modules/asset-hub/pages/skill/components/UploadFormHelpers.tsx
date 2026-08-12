@@ -1,7 +1,13 @@
-// UploadFormHelpers — small reusable sub-components for UploadForm.
-// Extracted to keep UploadForm.tsx under 200 lines.
+// UploadFormHelpers — small reusable sub-components for SkillForm.
+// Visual: TagInput uses antd Select (mode="tags", size="large") so it matches the sibling
+// Name/Category antd controls exactly; animated error reveals; uppercase field labels.
+// Logic, state, validation, and exported signatures are UNCHANGED.
 
-import React, { useState } from 'react';
+import React from 'react';
+import { Select, Tag } from 'antd';
+import type { SelectProps } from 'antd';
+import { motion, AnimatePresence } from 'framer-motion';
+import { fadeInUp } from '../../../theme/motion';
 
 // ---- Field wrapper ---------------------------------------------------------------
 
@@ -13,62 +19,71 @@ interface FieldProps {
 }
 
 export const Field: React.FC<FieldProps> = ({ label, required, children, error }) => (
-  <div className="flex flex-col gap-1">
-    <label className="text-xs font-semibold uppercase tracking-wider text-ah-muted">
-      {label}{required && <span className="ml-0.5 text-ah-red">*</span>}
+  <div className="flex flex-col gap-1.5">
+    <label className="text-[11px] font-semibold uppercase tracking-widest text-ah-muted">
+      {label}
+      {required && <span className="ml-0.5 text-ah-red">*</span>}
     </label>
     {children}
-    {error && <p className="text-xs text-ah-red">{error}</p>}
+    <AnimatePresence initial={false}>
+      {error && (
+        <motion.p
+          key="err"
+          variants={fadeInUp}
+          initial="hidden"
+          animate="show"
+          exit={{ opacity: 0, y: -4, transition: { duration: 0.15 } }}
+          className="text-xs text-ah-red"
+        >
+          {error}
+        </motion.p>
+      )}
+    </AnimatePresence>
   </div>
 );
 
-// ---- Tag chip input --------------------------------------------------------------
+// ---- Tag input (antd Select in tags mode → matches sibling Name/Category controls) ----
 
 interface TagInputProps {
   tags: string[];
   onChange: (tags: string[]) => void;
 }
 
-export const TagInput: React.FC<TagInputProps> = ({ tags, onChange }) => {
-  const [draft, setDraft] = useState('');
+// Brand-green chip, consistent with the tag pills shown on skill cards / detail.
+const renderTag: SelectProps['tagRender'] = ({ label, closable, onClose }) => (
+  <Tag
+    closable={closable}
+    onClose={onClose}
+    color="green"
+    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+    className="!rounded-full !border-ah-green/30 !bg-ah-green-l !text-ah-green !text-xs !font-semibold !my-0.5 !mr-1"
+  >
+    {label}
+  </Tag>
+);
 
-  const add = () => {
-    const t = draft.trim().toLowerCase();
-    if (t && !tags.includes(t)) onChange([...tags, t]);
-    setDraft('');
+export const TagInput: React.FC<TagInputProps> = ({ tags, onChange }) => {
+  // Normalize on change: trim + lowercase + dedupe + drop empties (matches previous behavior).
+  const handleChange = (values: string[]) => {
+    const cleaned = values
+      .map((v) => v.trim().toLowerCase())
+      .filter((v, i, arr) => v && arr.indexOf(v) === i);
+    onChange(cleaned);
   };
 
   return (
-    <div className="flex flex-wrap gap-1.5 rounded-lg border border-ah-line bg-ah-pale px-2 py-1.5 min-h-[38px]">
-      {tags.map((tag) => (
-        <span
-          key={tag}
-          className="flex items-center gap-1 rounded-full bg-ah-green-l px-2 py-0.5 text-xs font-semibold text-ah-green"
-        >
-          {tag}
-          <button
-            type="button"
-            onClick={() => onChange(tags.filter((t) => t !== tag))}
-            className="ml-0.5 text-ah-muted hover:text-ah-red"
-          >
-            ✕
-          </button>
-        </span>
-      ))}
-      <input
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            add();
-          }
-        }}
-        onBlur={add}
-        placeholder={tags.length ? '' : 'Nhập tag, Enter để thêm…'}
-        className="flex-1 min-w-[120px] bg-transparent text-xs outline-none placeholder:text-ah-muted"
-      />
-    </div>
+    <Select
+      mode="tags"
+      size="large"
+      className="w-full"
+      value={tags}
+      onChange={handleChange}
+      tokenSeparators={[',']}
+      open={false}
+      suffixIcon={null}
+      tagRender={renderTag}
+      placeholder="Nhập tag, Enter để thêm…"
+    />
   );
 };
 

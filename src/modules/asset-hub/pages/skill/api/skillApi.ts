@@ -30,6 +30,7 @@ import type {
   SkillPackage,
   SkillVersion,
   SkillDiff,
+  MySkillItem,
   MySkillPermissions,
 } from '../types';
 
@@ -66,8 +67,10 @@ export async function uploadFileToStrapi(file: File): Promise<string> {
 }
 
 // Payload shapes for the pull-based backend upload (JSON, not multipart).
+// The zip is sent as a `file` object (fileUrl + optional name/type), mirroring the diagnostic
+// report's `file` input; the avatar stays a plain URL (mirroring diagnostic's `icon`).
 export interface UploadNewPayload {
-  zip_url: string;
+  file: { fileUrl: string; name?: string; type?: string };
   avatar_url?: string;
   name: string;
   short_description: string;
@@ -77,6 +80,16 @@ export interface UploadNewPayload {
 
 export interface UploadUpdatePayload extends UploadNewPayload {
   changelog_note?: string;
+}
+
+// BE response shapes (the backend returns thin id envelopes, NOT full entities).
+// createNew → { package: { id }, version: { id, version_no } }; createVersion → { version: {...} }.
+export interface UploadNewResult {
+  package: { id: number };
+  version: { id: number; version_no: number };
+}
+export interface UploadUpdateResult {
+  version: { id: number; version_no: number };
 }
 
 // ---- List & Detail -------------------------------------------------------------
@@ -93,21 +106,34 @@ export function list(params: {
   return axios.get(url('/items'), { params }).then((res) => res.data);
 }
 
-/** Full detail: package + all versions. */
+/** Full detail: package + all versions + caller flags (isUpdate, hasPendingVersion). */
 export function detail(id: number): Promise<SkillPackageDetail> {
   return axios.get(url(`/items/${id}`)).then((res) => res.data);
 }
 
+/** List the caller's OWN skills (created_by), across all statuses. Returns Paginated<MySkillItem>. */
+export function mySkills(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  category?: string;
+} = {}): Promise<Paginated<MySkillItem>> {
+  return axios.get(url('/my-items'), { params }).then((res) => res.data);
+}
+
 // ---- Upload --------------------------------------------------------------------
 
-/** Create a new skill package (first upload). JSON body with Strapi URLs. */
-export function uploadNew(payload: UploadNewPayload): Promise<SkillPackageDetail> {
+/** Create a new skill package (first upload). JSON body with Strapi URLs.
+ *  Returns `{ package: { id }, version: { id, version_no } }` — use `.package.id` to navigate. */
+export function uploadNew(payload: UploadNewPayload): Promise<UploadNewResult> {
   return axios.post(url('/items'), payload).then((res) => res.data);
 }
 
-/** Submit a new version for an existing skill package. JSON body with Strapi URLs. */
-export function uploadUpdate(id: number, payload: UploadUpdatePayload): Promise<SkillVersion> {
-  return axios.post(url(`/items/${id}/versions`), payload).then((res) => res.data);
+/** Submit a new version for an existing skill package. JSON body with Strapi URLs.
+ *  PUT (full-body replace of the draft) — BE contract; path/body/response unchanged from POST.
+ *  Returns `{ version: { id, version_no } }`. */
+export function uploadUpdate(id: number, payload: UploadUpdatePayload): Promise<UploadUpdateResult> {
+  return axios.put(url(`/items/${id}/versions`), payload).then((res) => res.data);
 }
 
 // ---- Review --------------------------------------------------------------------

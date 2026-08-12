@@ -1,150 +1,93 @@
-// DiffView — render git-style line diff from {base, incoming} using jsdiff.
-// If base===null: render incoming as a "first version" preview (no diff).
-// Huge-diff guard: cap at MAX_HUNKS=2000 hunks or MAX_BYTES=200_000 chars (either side);
-//   shows a truncated view + warning banner instead of rendering the full diff.
-// Tailwind-only; no hardcoded hex — uses ah-* tokens.
+// DiffView — git-style line diff from {base, incoming} using jsdiff.
+// base===null → "first version" preview. Huge-diff guard: MAX_HUNKS/MAX_BYTES.
+// Visual: full-frame rounded-2xl panel, ah-* tokens, fade-in on mount.
 
 import React, { useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { diffLines, diffWordsWithSpace } from 'diff';
 import type { Change } from 'diff';
+import { fadeInUp } from '../../../theme/motion';
 
-const MAX_BYTES = 200_000; // chars in either base or incoming
-const MAX_HUNKS = 2_000;   // diff Change objects
+const MAX_BYTES = 200_000;
+const MAX_HUNKS = 2_000;
 
-// ---- Types --------------------------------------------------------------------
+interface DiffViewProps { base: string | null; incoming: string }
 
-interface DiffViewProps {
-  base: string | null;
-  incoming: string;
-}
-
-// ---- Word-level inline highlight (inside changed lines) -----------------------
-
+// ---- Word-level inline highlight ----------------------------------------------
 function WordSpan({ text, added, removed }: { text: string; added?: boolean; removed?: boolean }) {
   if (added) return <mark className="rounded bg-ah-green-l text-ah-green-d">{text}</mark>;
   if (removed) return <mark className="rounded bg-ah-red-l text-ah-red line-through">{text}</mark>;
   return <>{text}</>;
 }
-
-function renderWordDiff(oldLine: string, newLine: string): React.ReactNode {
-  const changes = diffWordsWithSpace(oldLine, newLine);
-  return changes.map((c, i) => (
-    <WordSpan key={i} text={c.value} added={c.added} removed={c.removed} />
-  ));
+function renderWordDiff(a: string, b: string) {
+  return diffWordsWithSpace(a, b).map((c, i) => <WordSpan key={i} text={c.value} added={c.added} removed={c.removed} />);
 }
 
-// ---- Single diff hunk row -----------------------------------------------------
-
-interface HunkRowProps {
-  change: Change;
-  lineNo: { old: number; new: number };
-  nextValue?: string; // companion added line for word-level diff (paired with removed)
-}
-
-const HunkRow: React.FC<HunkRowProps> = ({ change, lineNo, nextValue }) => {
+// ---- Single diff hunk --------------------------------------------------------
+const HunkRow: React.FC<{ change: Change; lineNo: { old: number; new: number }; nextValue?: string }> = ({ change, lineNo, nextValue }) => {
   const lines = change.value.replace(/\n$/, '').split('\n');
-
-  if (change.added) {
-    return (
-      <>
-        {lines.map((line, i) => (
-          <tr key={i} className="bg-ah-green-l">
-            <td className="select-none px-3 py-0 text-right text-[11px] text-ah-muted w-10">
-              {lineNo.new + i}
-            </td>
-            <td className="select-none px-2 py-0 text-[11px] text-ah-green w-4">+</td>
-            <td className="px-2 py-0 text-[13px] font-mono text-ah-green-d whitespace-pre-wrap break-all">
-              {nextValue !== undefined ? renderWordDiff('', line) : line}
-            </td>
-          </tr>
-        ))}
-      </>
-    );
-  }
-
-  if (change.removed) {
-    return (
-      <>
-        {lines.map((line, i) => (
-          <tr key={i} className="bg-ah-red-l">
-            <td className="select-none px-3 py-0 text-right text-[11px] text-ah-muted w-10">
-              {lineNo.old + i}
-            </td>
-            <td className="select-none px-2 py-0 text-[11px] text-ah-red w-4">-</td>
-            <td className="px-2 py-0 text-[13px] font-mono text-ah-red whitespace-pre-wrap break-all">
-              {nextValue !== undefined ? renderWordDiff(line, nextValue) : line}
-            </td>
-          </tr>
-        ))}
-      </>
-    );
-  }
-
-  // unchanged — show up to 3 context lines; collapse large unchanged blocks.
-  // Carry each line's true offset so duplicate lines (blanks, repeated markers)
-  // get correct gutter numbers — indexOf would collapse them to the first match.
+  if (change.added) return (
+    <>{lines.map((line, i) => (
+      <tr key={i} className="bg-ah-green-l">
+        <td className="select-none px-3 py-0 text-right text-[11px] text-ah-muted w-10">{lineNo.new + i}</td>
+        <td className="select-none px-2 py-0 text-[11px] font-bold text-ah-green w-4">+</td>
+        <td className="px-2 py-0 text-[13px] font-mono text-ah-green-d whitespace-pre-wrap break-all">
+          {nextValue !== undefined ? renderWordDiff('', line) : line}
+        </td>
+      </tr>
+    ))}</>
+  );
+  if (change.removed) return (
+    <>{lines.map((line, i) => (
+      <tr key={i} className="bg-ah-red-l">
+        <td className="select-none px-3 py-0 text-right text-[11px] text-ah-muted w-10">{lineNo.old + i}</td>
+        <td className="select-none px-2 py-0 text-[11px] font-bold text-ah-red w-4">-</td>
+        <td className="px-2 py-0 text-[13px] font-mono text-ah-red whitespace-pre-wrap break-all">
+          {nextValue !== undefined ? renderWordDiff(line, nextValue) : line}
+        </td>
+      </tr>
+    ))}</>
+  );
+  // Unchanged — up to 3 context lines, collapse large blocks.
   const CONTEXT = 3;
   const rows: Array<{ offset: number; line: string } | null> =
     lines.length > CONTEXT * 2 + 1
-      ? [
-          ...lines.slice(0, CONTEXT).map((line, i) => ({ offset: i, line })),
-          null,
-          ...lines.slice(-CONTEXT).map((line, i) => ({ offset: lines.length - CONTEXT + i, line })),
-        ]
-      : lines.map((line, i) => ({ offset: i, line }));
-
+      ? [...lines.slice(0, CONTEXT).map((l, i) => ({ offset: i, line: l })), null, ...lines.slice(-CONTEXT).map((l, i) => ({ offset: lines.length - CONTEXT + i, line: l }))]
+      : lines.map((l, i) => ({ offset: i, line: l }));
   return (
-    <>
-      {rows.map((row, i) =>
-        row === null ? (
-          <tr key="ellipsis" className="bg-ah-pale">
-            <td colSpan={3} className="select-none px-3 py-0.5 text-center text-[11px] text-ah-muted">
-              ···
-            </td>
-          </tr>
-        ) : (
-          <tr key={i}>
-            <td className="select-none px-3 py-0 text-right text-[11px] text-ah-muted w-10">
-              {lineNo.new + row.offset}
-            </td>
-            <td className="select-none px-2 py-0 text-[11px] text-ah-muted w-4" />
-            <td className="px-2 py-0 text-[13px] font-mono text-ah-ink whitespace-pre-wrap break-all">
-              {row.line}
-            </td>
-          </tr>
-        )
-      )}
-    </>
+    <>{rows.map((row, i) => row === null
+      ? <tr key="ellipsis" className="bg-ah-pale"><td colSpan={3} className="select-none px-3 py-0.5 text-center text-[11px] text-ah-muted">···</td></tr>
+      : <tr key={i} className="hover:bg-ah-pale/40 transition-colors">
+          <td className="select-none px-3 py-0 text-right text-[11px] text-ah-muted w-10">{lineNo.new + row.offset}</td>
+          <td className="select-none px-2 py-0 text-[11px] text-ah-muted w-4" />
+          <td className="px-2 py-0 text-[13px] font-mono text-ah-ink whitespace-pre-wrap break-all">{row.line}</td>
+        </tr>
+    )}</>
   );
 };
 
-// ---- Preview mode (first version, no diff) ------------------------------------
-
+// ---- Preview mode (first version) --------------------------------------------
 const PreviewMode: React.FC<{ incoming: string; truncated: boolean }> = ({ incoming, truncated }) => (
-  <div>
-    <div className="mb-2 flex items-center gap-2 rounded-lg border border-ah-green bg-ah-green-l px-3 py-1.5">
+  <motion.div variants={fadeInUp} initial="hidden" animate="show">
+    <div className="mb-2.5 flex items-center gap-2 rounded-xl border border-ah-green bg-ah-green-l px-3 py-2">
+      <span className="h-2 w-2 rounded-full bg-ah-green" />
       <span className="text-[12px] font-semibold text-ah-green">Phiên bản đầu tiên — xem trước nội dung skill.md</span>
     </div>
     {truncated && (
-      <div className="mb-2 rounded-lg border border-ah-amber bg-ah-amber-l px-3 py-1.5 text-[12px] text-ah-amber">
+      <div className="mb-2.5 flex items-center gap-2 rounded-xl border border-ah-amber bg-ah-amber-l px-3 py-2 text-[12px] text-ah-amber">
+        <span className="h-2 w-2 rounded-full bg-ah-amber" />
         Nội dung quá lớn — chỉ hiển thị 200KB đầu tiên.
       </div>
     )}
-    <pre className="overflow-x-auto rounded-lg border border-ah-line bg-ah-pale p-4 text-[13px] font-mono text-ah-ink whitespace-pre-wrap break-all">
+    <pre className="overflow-x-auto rounded-2xl border border-ah-line bg-ah-pale p-4 text-[13px] font-mono text-ah-ink whitespace-pre-wrap break-all shadow-ah-float">
       {incoming.slice(0, MAX_BYTES)}
     </pre>
-  </div>
+  </motion.div>
 );
 
-// ---- Main component -----------------------------------------------------------
-
+// ---- Main component ----------------------------------------------------------
 const DiffView: React.FC<DiffViewProps> = ({ base, incoming }) => {
-  // Huge-file guard: check size (base may be null for a first-version preview).
   const oversized = (base?.length ?? 0) > MAX_BYTES || incoming.length > MAX_BYTES;
-
-  // Compute diff (memoised — can be expensive for large texts).
-  // Hook runs unconditionally (before any early return) to satisfy rules-of-hooks;
-  // returns empty for the preview case where there is no base to diff against.
   const { changes, tooManyHunks } = useMemo(() => {
     if (base === null) return { changes: [] as Change[], tooManyHunks: false };
     const safeBase = oversized ? base.slice(0, MAX_BYTES) : base;
@@ -153,26 +96,20 @@ const DiffView: React.FC<DiffViewProps> = ({ base, incoming }) => {
     return { changes: ch, tooManyHunks: ch.length > MAX_HUNKS };
   }, [base, incoming, oversized]);
 
-  // First-version preview (no base) — safe to return now that hooks have run.
-  if (base === null) {
-    const truncated = incoming.length > MAX_BYTES;
-    return <PreviewMode incoming={incoming} truncated={truncated} />;
-  }
+  if (base === null) return <PreviewMode incoming={incoming} truncated={incoming.length > MAX_BYTES} />;
 
   const displayChanges = tooManyHunks ? changes.slice(0, MAX_HUNKS) : changes;
-
-  // Walk changes to compute running line numbers
-  let oldLine = 1;
-  let newLine = 1;
+  let oldLine = 1; let newLine = 1;
 
   return (
-    <div>
+    <motion.div variants={fadeInUp} initial="hidden" animate="show">
       {(oversized || tooManyHunks) && (
-        <div className="mb-2 rounded-lg border border-ah-amber bg-ah-amber-l px-3 py-1.5 text-[12px] text-ah-amber">
+        <div className="mb-2.5 flex items-center gap-2 rounded-xl border border-ah-amber bg-ah-amber-l px-3 py-2 text-[12px] text-ah-amber">
+          <span className="h-2 w-2 rounded-full bg-ah-amber" />
           File quá lớn — diff bị cắt bớt để tránh treo trình duyệt. Chỉ hiển thị phần đầu.
         </div>
       )}
-      <div className="overflow-x-auto rounded-lg border border-ah-line">
+      <div className="overflow-x-auto rounded-2xl border border-ah-line shadow-ah-float">
         <table className="w-full border-collapse text-left">
           <tbody>
             {displayChanges.map((change, idx) => {
@@ -180,27 +117,14 @@ const DiffView: React.FC<DiffViewProps> = ({ base, incoming }) => {
               const lineCount = change.value.replace(/\n$/, '').split('\n').length;
               if (!change.added) oldLine += lineCount;
               if (!change.removed) newLine += lineCount;
-
-              // Pair removed + next added for word-level diff
               const nextChange = displayChanges[idx + 1];
-              const nextVal =
-                change.removed && nextChange?.added
-                  ? nextChange.value.replace(/\n$/, '')
-                  : undefined;
-
-              return (
-                <HunkRow
-                  key={idx}
-                  change={change}
-                  lineNo={lineNos}
-                  nextValue={nextVal}
-                />
-              );
+              const nextVal = change.removed && nextChange?.added ? nextChange.value.replace(/\n$/, '') : undefined;
+              return <HunkRow key={idx} change={change} lineNo={lineNos} nextValue={nextVal} />;
             })}
           </tbody>
         </table>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
