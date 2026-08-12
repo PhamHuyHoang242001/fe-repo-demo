@@ -1,7 +1,8 @@
 import React from 'react';
-import PageShell from './PageShell';
+import PromptWorkspace from './prompt/PromptWorkspace';
 
-// Màn trắng placeholder — Prompt Library (route /asset-hub/prompt).
-const PromptLibrary: React.FC = () => <PageShell crumb="Tài sản ứng dụng › Prompt" title="Prompt Library" />;
+// Prompt Library entry (route /asset-hub/prompt). The workspace shell (3-tab: Published /
+// My Prompts / Review Queue) lives in ./prompt/PromptWorkspace, mirroring the Skill Package shell.
+const PromptLibrary: React.FC = () => <PromptWorkspace />;
 
 export default PromptLibrary;
