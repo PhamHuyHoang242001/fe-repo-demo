@@ -22,6 +22,7 @@
 import 'utils/http'; // side-effect: registers global auth interceptor
 import axios from 'axios';
 import { APP_CONFIG } from 'utils/env';
+import { saveBlobResponse } from '../../../utils/download-file';
 
 import type {
   Paginated,
@@ -92,17 +93,29 @@ export interface UploadUpdateResult {
   version: { id: number; version_no: number };
 }
 
+// ---- Download ------------------------------------------------------------------
+
+/** Download the active version's .zip via the BearerGuard-protected BE endpoint.
+ *  Fetches as a blob through the authenticated client (a plain anchor would omit the auth
+ *  header and 401) and saves it client-side. Filename comes from the response header. */
+export async function downloadZip(id: number): Promise<void> {
+  const res = await axios.get<Blob>(url(`/items/${id}/download`), { responseType: 'blob' });
+  saveBlobResponse(res, `skill-${id}.zip`);
+}
+
 // ---- List & Detail -------------------------------------------------------------
 
 /** List published skills (active_version != null, status=active).
  *  Returns Paginated<SkillListItem> where res.data is the envelope directly. */
-export function list(params: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  category?: string;
-  tags?: string[];
-} = {}): Promise<Paginated<SkillListItem>> {
+export function list(
+  params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    tags?: string[];
+  } = {},
+): Promise<Paginated<SkillListItem>> {
   return axios.get(url('/items'), { params }).then((res) => res.data);
 }
 
@@ -142,11 +155,13 @@ export function uploadUpdate(id: number, payload: UploadUpdatePayload): Promise<
 
 /** List pending versions for review.
  *  scope='mine' returns only the caller's own uploads (BE enforces canApprove for 'all'). */
-export function reviews(params: {
-  scope?: 'all' | 'mine';
-  page?: number;
-  limit?: number;
-} = {}): Promise<Paginated<SkillVersion>> {
+export function reviews(
+  params: {
+    scope?: 'all' | 'mine';
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<Paginated<SkillVersion>> {
   return axios.get(url('/reviews'), { params }).then((res) => res.data);
 }
 

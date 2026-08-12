@@ -80,9 +80,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({ pkg }) => {
           <div className="min-w-0">
             {/* Name + version chip + status */}
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-white drop-shadow">
-                {v.name}
-              </h1>
+              <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-white drop-shadow">{v.name}</h1>
               <motion.span
                 {...hoverPress}
                 className="cursor-default rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-bold text-white ring-1 ring-white/25 shadow"
@@ -94,9 +92,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({ pkg }) => {
 
             {/* Short description */}
             {v.short_description && (
-              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/85">
-                {v.short_description}
-              </p>
+              <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-white/85">{v.short_description}</p>
             )}
 
             {/* Category + tags + date */}
@@ -105,10 +101,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({ pkg }) => {
                 {v.category}
               </span>
               {v.tags.map((t) => (
-                <span
-                  key={t}
-                  className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/90"
-                >
+                <span key={t} className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/90">
                   #{t}
                 </span>
               ))}
@@ -119,7 +112,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({ pkg }) => {
 
         {/* Action buttons */}
         <div className="shrink-0">
-          <SkillActions file={v.file} skillMd={v.skill_md_content} />
+          <SkillActions packageId={pkg.id} file={v.file} skillMd={v.skill_md_content} />
         </div>
       </div>
     </motion.div>

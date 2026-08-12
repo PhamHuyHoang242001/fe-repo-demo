@@ -22,6 +22,7 @@
 import 'utils/http'; // side-effect: registers global auth interceptor
 import axios from 'axios';
 import { APP_CONFIG } from 'utils/env';
+import { saveBlobResponse } from '../../../utils/download-file';
 
 import type {
   Paginated,
@@ -92,17 +93,29 @@ export interface UploadUpdateResult {
   version: { id: number; version_no: number };
 }
 
+// ---- Download ------------------------------------------------------------------
+
+/** Download the active version as a professional .md via the BearerGuard-protected BE endpoint.
+ *  Fetches as a blob through the authenticated client (a plain anchor would omit the auth header
+ *  and 401) and saves it client-side. Filename comes from the response header. */
+export async function downloadMarkdown(id: number): Promise<void> {
+  const res = await axios.get<Blob>(url(`/items/${id}/download`), { responseType: 'blob' });
+  saveBlobResponse(res, `prompt-${id}.md`);
+}
+
 // ---- List & Detail -------------------------------------------------------------
 
 /** List published prompts (active_version != null, status=active).
  *  Returns Paginated<PromptListItem> where res.data is the envelope directly. */
-export function list(params: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  category?: string;
-  tags?: string[];
-} = {}): Promise<Paginated<PromptListItem>> {
+export function list(
+  params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    tags?: string[];
+  } = {},
+): Promise<Paginated<PromptListItem>> {
   return axios.get(url('/items'), { params }).then((res) => res.data);
 }
 
@@ -142,11 +155,13 @@ export function uploadUpdate(id: number, payload: UploadUpdatePayload): Promise<
 
 /** List pending versions for review.
  *  scope='mine' returns only the caller's own uploads (BE enforces canApprove for 'all'). */
-export function reviews(params: {
-  scope?: 'all' | 'mine';
-  page?: number;
-  limit?: number;
-} = {}): Promise<Paginated<PromptVersion>> {
+export function reviews(
+  params: {
+    scope?: 'all' | 'mine';
+    page?: number;
+    limit?: number;
+  } = {},
+): Promise<Paginated<PromptVersion>> {
   return axios.get(url('/reviews'), { params }).then((res) => res.data);
 }
 
