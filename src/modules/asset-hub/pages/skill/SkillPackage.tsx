@@ -66,7 +66,8 @@ const SkillPackage: React.FC = () => {
       .then((r) => !cancelled && setCounts((c) => ({ ...c, list: r.meta.total })))
       .catch(() => {});
     if (canUpload) {
-      listMySkills({ limit: 1 })
+      // my-items is bucketed by latest-version state; use the approved bucket for the badge count.
+      listMySkills({ status: 'approved', limit: 1 })
         .then((r) => !cancelled && setCounts((c) => ({ ...c, mine: r.meta.total })))
         .catch(() => {});
     }

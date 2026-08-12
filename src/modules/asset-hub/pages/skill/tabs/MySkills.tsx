@@ -1,16 +1,25 @@
-// Tab: My Skill — the caller's own skills (created_by) across ALL statuses.
+// Tab: My Skill — the caller's own skills (created_by), bucketed by the LATEST version's state.
+// A Segmented control switches the bucket (approved / pending / rejected); the BE requires `status`.
 // One card per package showing the representative version's identity + a version-state badge and
 // the package active/inactive status. Click → detail. No import from src/pages/* or src/hooks/*.
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Segmented } from 'antd';
 import { mySkills } from '../api/skillApi';
 import type { MySkillItem } from '../types';
 import { StateBadge, SpinnerRow, ErrorBanner } from '../components/ReviewShared';
 import { StaggerList, StaggerItem } from '../components/motion-primitives';
 import { fadeInUp, springSnappy } from '../../../theme/motion';
 import { CARD_BASE, HOVER_GLOW } from '../../../theme/surfaces';
+
+type Bucket = 'approved' | 'pending' | 'rejected';
+const BUCKET_OPTIONS: { label: string; value: Bucket }[] = [
+  { label: 'Đã duyệt', value: 'approved' },
+  { label: 'Chờ duyệt', value: 'pending' },
+  { label: 'Bị từ chối', value: 'rejected' },
+];
 
 const CATEGORY_LABELS: Record<string, string> = {
   general: 'Tổng hợp', 'data-analysis': 'Phân tích', automation: 'Tự động',
@@ -83,6 +92,7 @@ const EmptyState: React.FC = () => (
 
 const MySkills: React.FC = () => {
   const navigate = useNavigate();
+  const [bucket, setBucket] = useState<Bucket>('approved');
   const [items, setItems] = useState<MySkillItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -91,7 +101,7 @@ const MySkills: React.FC = () => {
     let cancelled = false;
     setLoading(true);
     setErrorMsg(null);
-    mySkills({ limit: 50 })
+    mySkills({ status: bucket, limit: 50 })
       .then((res) => {
         if (!cancelled) { setItems(res.data); setLoading(false); }
       })
@@ -101,13 +111,24 @@ const MySkills: React.FC = () => {
         setLoading(false);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [bucket]);
 
-  if (loading) return <SpinnerRow />;
-  if (errorMsg) return <ErrorBanner message={errorMsg} />;
-  if (!items.length) return <EmptyState />;
+  const switcher = (
+    <div className="mb-4">
+      <Segmented
+        size="large"
+        value={bucket}
+        onChange={(v) => setBucket(v as Bucket)}
+        options={BUCKET_OPTIONS}
+      />
+    </div>
+  );
 
-  return (
+  let body: React.ReactNode;
+  if (loading) body = <SpinnerRow />;
+  else if (errorMsg) body = <ErrorBanner message={errorMsg} />;
+  else if (!items.length) body = <EmptyState />;
+  else body = (
     <StaggerList className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
         <StaggerItem key={item.id}>
@@ -115,6 +136,13 @@ const MySkills: React.FC = () => {
         </StaggerItem>
       ))}
     </StaggerList>
+  );
+
+  return (
+    <div>
+      {switcher}
+      {body}
+    </div>
   );
 };
 

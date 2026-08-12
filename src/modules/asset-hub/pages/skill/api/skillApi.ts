@@ -111,13 +111,15 @@ export function detail(id: number): Promise<SkillPackageDetail> {
   return axios.get(url(`/items/${id}`)).then((res) => res.data);
 }
 
-/** List the caller's OWN skills (created_by), across all statuses. Returns Paginated<MySkillItem>. */
+/** List the caller's OWN skills (created_by), bucketed by the LATEST version's state.
+ *  `status` is REQUIRED (pending | approved | rejected). Returns Paginated<MySkillItem>. */
 export function mySkills(params: {
+  status: 'pending' | 'approved' | 'rejected';
   page?: number;
   limit?: number;
   search?: string;
   category?: string;
-} = {}): Promise<Paginated<MySkillItem>> {
+}): Promise<Paginated<MySkillItem>> {
   return axios.get(url('/my-items'), { params }).then((res) => res.data);
 }
 
