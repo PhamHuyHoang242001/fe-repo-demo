@@ -61,6 +61,7 @@ export interface SkillVersion {
   /** Resolved email of the submitter (BE joins users). Null if unresolved. Prefer over the raw id. */
   submitted_by_email?: string | null;
   reviewed_by: number | null;
+  reviewed_by_email?: string | null;
   reviewed_at: string | null;
   reject_reason: string | null;
   created_at: string;
@@ -151,6 +152,18 @@ export interface SkillDiff {
     submitted_by_email?: string | null;
     submitted_at: string;
   };
+}
+
+export interface SkillVersionDetail {
+  package: Pick<SkillPackage, 'id' | 'code' | 'status' | 'active_version_id' | 'created_by'>;
+  version: SkillVersion;
+  comparison: null | {
+    base_version_id: number | null;
+    base_version_no: number | null;
+    base: string | null;
+    incoming: string;
+  };
+  can_review: boolean;
 }
 
 // ---- Permissions ---------------------------------------------------------------

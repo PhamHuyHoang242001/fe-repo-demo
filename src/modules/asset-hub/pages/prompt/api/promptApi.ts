@@ -35,6 +35,7 @@ import type {
   VersionRow,
   ListVersionsParams,
   VersionCodeOption,
+  PromptVersionDetail,
 } from '../types';
 
 // Convenience helper — keeps call sites concise.
@@ -175,6 +176,11 @@ export function reviews(
 /** Git-style diff for a pending version vs its predecessor's prompt.md. */
 export function diff(versionId: number): Promise<PromptDiff> {
   return axios.get(url(`/versions/${versionId}/diff`)).then((res) => res.data);
+}
+
+/** Full standalone detail for any visible version. */
+export function versionDetail(versionId: number): Promise<PromptVersionDetail> {
+  return axios.get(url(`/versions/${versionId}`)).then((res) => res.data);
 }
 
 /** Approve a pending version (sets it as active_version). */

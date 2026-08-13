@@ -35,6 +35,7 @@ import type {
   VersionRow,
   ListVersionsParams,
   VersionCodeOption,
+  SkillVersionDetail,
 } from '../types';
 
 // Convenience helper — keeps call sites concise.
@@ -175,6 +176,11 @@ export function reviews(
 /** Git-style diff for a pending version vs its predecessor's skill.md. */
 export function diff(versionId: number): Promise<SkillDiff> {
   return axios.get(url(`/versions/${versionId}/diff`)).then((res) => res.data);
+}
+
+/** Full standalone detail for any visible version. */
+export function versionDetail(versionId: number): Promise<SkillVersionDetail> {
+  return axios.get(url(`/versions/${versionId}`)).then((res) => res.data);
 }
 
 /** Approve a pending version (sets it as active_version). */

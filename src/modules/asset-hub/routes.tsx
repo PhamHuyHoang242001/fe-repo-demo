@@ -4,9 +4,11 @@ import Dashboard from './pages/Dashboard';
 import SkillPackage from './pages/skill/SkillPackage';
 import SkillDetail from './pages/skill/SkillDetail';
 import SkillForm from './pages/skill/SkillForm';
+import SkillVersionDetail from './pages/skill/SkillVersionDetail';
 import PromptLibrary from './pages/PromptLibrary';
 import PromptDetail from './pages/prompt/PromptDetail';
 import PromptForm from './pages/prompt/PromptForm';
+import PromptVersionDetail from './pages/prompt/PromptVersionDetail';
 
 // Bảng route nội bộ module (relative — mount dưới /asset-hub/* ở App.tsx).
 // IMPORTANT: all `skill/*` routes are TOP-LEVEL SIBLINGS before the catch-all.
@@ -21,10 +23,12 @@ const AssetHubRoutes: React.FC = () => (
     <Route path="skill" element={<SkillPackage />} />
     <Route path="skill/upload" element={<SkillForm mode="new" />} />
     <Route path="skill/:id/edit" element={<SkillForm mode="edit" />} />
+    <Route path="skill/versions/:versionId" element={<SkillVersionDetail />} />
     <Route path="skill/:id" element={<SkillDetail />} />
     <Route path="prompt" element={<PromptLibrary />} />
     <Route path="prompt/upload" element={<PromptForm mode="new" />} />
     <Route path="prompt/:id/edit" element={<PromptForm mode="edit" />} />
+    <Route path="prompt/versions/:versionId" element={<PromptVersionDetail />} />
     <Route path="prompt/:id" element={<PromptDetail />} />
     <Route path="*" element={<Navigate to="." replace />} />
   </Routes>

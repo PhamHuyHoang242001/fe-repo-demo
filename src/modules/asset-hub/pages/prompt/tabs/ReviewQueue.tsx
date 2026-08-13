@@ -1,4 +1,4 @@
-// Tab: Chờ duyệt — review queue + embedded ReviewScreen.
+// Tab: Chờ duyệt — review queue linking to the standalone version detail route.
 //
 // Always loads the FULL pending queue (scope='all'); no tabs. The BE forces submitted_by=me
 // for non-approvers, so this stays safe for both roles. Creator / category / sort filters are
@@ -7,12 +7,11 @@
 // A 403 from reviews() is shown as an inline banner — no crash.
 // No import from src/pages/* or src/hooks/* (H4).
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { reviews } from '../api/promptApi';
 import type { PromptVersion } from '../types';
-import { usePromptPermissions } from '../hooks/usePromptPermissions';
-import ReviewScreen from '../ReviewScreen';
 import { StateBadge, SpinnerRow, ErrorBanner } from '../components/ReviewShared';
 import ReviewQueueFilters, { DEFAULT_REVIEW_FILTERS, type ReviewFilters } from '../components/ReviewQueueFilters';
 import { StaggerList, StaggerItem } from '../components/motion-primitives';
@@ -31,7 +30,9 @@ const QueueRow: React.FC<{ version: PromptVersion; onClick: () => void }> = ({ v
     <div className="flex flex-col gap-0.5 min-w-0">
       <span className="text-sm font-bold text-ah-ink truncate">{version.name}</span>
       <span className="text-[12px] text-ah-muted">
-        {version.old_version == null ? 'mới' : `v${version.old_version} · chờ duyệt`} · {version.submitted_by_email ?? `#${version.submitted_by}`} · {new Date(version.created_at).toLocaleDateString('vi-VN')}
+        {version.old_version == null ? 'mới' : `v${version.old_version} · chờ duyệt`} ·{' '}
+        {version.submitted_by_email ?? `#${version.submitted_by}`} ·{' '}
+        {new Date(version.created_at).toLocaleDateString('vi-VN')}
       </span>
     </div>
     <div className="flex items-center gap-2 shrink-0">
@@ -58,8 +59,11 @@ const QueueEmptyState: React.FC<{ text: string }> = ({ text }) => (
   >
     <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-ah-line bg-ah-card shadow-ah-float">
       <svg className="h-6 w-6 text-ah-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round"
-          d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
       </svg>
     </div>
     <p className="mt-4 text-sm font-bold text-ah-ink">Không có kết quả</p>
@@ -90,18 +94,23 @@ const QueueList: React.FC<QueueListProps> = ({ onSelectVersion, refreshTick }) =
     // Load the full pending queue; BE forces submitted_by=me for non-approvers.
     reviews({ scope: 'all', limit: 100 })
       .then((res) => {
-        if (!cancelled) { setItems(res.data); setLoading(false); }
+        if (!cancelled) {
+          setItems(res.data);
+          setLoading(false);
+        }
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        const status = (err as any)?.response?.status ?? 0;
+        const apiError = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+        const status = apiError.response?.status ?? 0;
         if (status === 403) setForbidden(true);
-        else
-          setErrorMsg((err as any)?.response?.data?.message || (err as Error)?.message || 'Không thể tải danh sách.');
+        else setErrorMsg(apiError.response?.data?.message || apiError.message || 'Không thể tải danh sách.');
         setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [refreshTick]);
 
   // Distinct creators present in the loaded queue (ascending) — feeds the "Người tạo" filter.
@@ -129,8 +138,7 @@ const QueueList: React.FC<QueueListProps> = ({ onSelectVersion, refreshTick }) =
   }, [items, filters]);
 
   const showEmpty = !loading && !forbidden && !errorMsg && visible.length === 0;
-  const emptyText =
-    items.length === 0 ? 'Không có phiên bản nào đang chờ duyệt.' : 'Không có kết quả phù hợp bộ lọc.';
+  const emptyText = items.length === 0 ? 'Không có phiên bản nào đang chờ duyệt.' : 'Không có kết quả phù hợp bộ lọc.';
 
   return (
     <div className="flex flex-col gap-3">
@@ -159,42 +167,12 @@ const QueueList: React.FC<QueueListProps> = ({ onSelectVersion, refreshTick }) =
 // ---- Root: owns selection state + refetch tick ------------------------------
 
 const ReviewQueue: React.FC = () => {
-  const { data: perms, loading: permsLoading } = usePromptPermissions();
-  const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
-  const [refreshTick, setRefreshTick] = useState(0);
-
-  const canApprove = perms?.canApprove ?? false;
-  const handleActionComplete = useCallback(() => setRefreshTick((n) => n + 1), []);
-
-  if (permsLoading) return <SpinnerRow />;
-
+  const navigate = useNavigate();
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {selectedVersionId !== null ? (
-        <motion.div
-          key="review-screen"
-          initial={{ opacity: 0, x: 24 }}
-          animate={{ opacity: 1, x: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } }}
-          exit={{ opacity: 0, x: -16, transition: { duration: 0.15 } }}
-        >
-          <ReviewScreen
-            versionId={selectedVersionId}
-            canApprove={canApprove}
-            onBack={() => setSelectedVersionId(null)}
-            onActionComplete={handleActionComplete}
-          />
-        </motion.div>
-      ) : (
-        <motion.div
-          key="queue-list"
-          initial={{ opacity: 0, x: -16 }}
-          animate={{ opacity: 1, x: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } }}
-          exit={{ opacity: 0, x: 16, transition: { duration: 0.15 } }}
-        >
-          <QueueList onSelectVersion={setSelectedVersionId} refreshTick={refreshTick} />
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <QueueList
+      onSelectVersion={(id) => navigate(`/asset-hub/prompt/versions/${id}`, { state: { fromVersionList: true } })}
+      refreshTick={0}
+    />
   );
 };
 

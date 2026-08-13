@@ -18,15 +18,7 @@ export interface Paginated<T> {
 
 // Mirrors BE PromptCategory enum (prompt-category.constant.ts — single source of truth).
 // Update both locations when the taxonomy changes.
-export const PROMPT_CATEGORIES = [
-  'writing',
-  'coding',
-  'marketing',
-  'analysis',
-  'roleplay',
-  'data',
-  'other',
-] as const;
+export const PROMPT_CATEGORIES = ['writing', 'coding', 'marketing', 'analysis', 'roleplay', 'data', 'other'] as const;
 
 export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
 
@@ -51,6 +43,7 @@ export interface PromptVersion {
   /** Resolved email of the submitter (BE joins users). Null if unresolved. Prefer over the raw id. */
   submitted_by_email?: string | null;
   reviewed_by: number | null;
+  reviewed_by_email?: string | null;
   reviewed_at: string | null;
   reject_reason: string | null;
   created_at: string;
@@ -141,6 +134,18 @@ export interface PromptDiff {
     submitted_by_email?: string | null;
     submitted_at: string;
   };
+}
+
+export interface PromptVersionDetail {
+  package: Pick<PromptPackage, 'id' | 'code' | 'status' | 'active_version_id' | 'created_by'>;
+  version: PromptVersion;
+  comparison: null | {
+    base_version_id: number | null;
+    base_version_no: number | null;
+    base: string | null;
+    incoming: string;
+  };
+  can_review: boolean;
 }
 
 // ---- Permissions ---------------------------------------------------------------
