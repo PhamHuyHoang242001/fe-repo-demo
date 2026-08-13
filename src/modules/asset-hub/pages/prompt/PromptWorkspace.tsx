@@ -1,18 +1,18 @@
 // Prompt Package workspace — tabbed shell with animated pill tab bar.
 //
 // Tab visibility (role gating):
-//   "Danh sách"      — always visible (view open to all authenticated users)
-//   "My Prompt"       — visible when canUpload (the caller's own prompts, all statuses)
-//   "Chờ phê duyệt"  — visible when canApprove only (all pending versions)
+//   "Danh sách"          — always visible (view open to all authenticated users)
+//   "My Version"          — visible when canUpload (own versions only: created OR submitted; approver too)
+//   "Chờ phê duyệt"      — visible when canApprove only (all pending versions)
 // Upload is NOT a tab — it's a header button (canUpload) → /asset-hub/prompt/upload.
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { usePromptPermissions } from './hooks/usePromptPermissions';
-import { list as listPrompts, reviews as listReviews, myPrompts as listMyPrompts } from './api/promptApi';
+import { list as listPrompts, reviews as listReviews, listVersions } from './api/promptApi';
 import PublishedList from './tabs/PublishedList';
 import ReviewQueue from './tabs/ReviewQueue';
-import MyPrompts from './tabs/MyPrompts';
+import VersionManagement from './tabs/VersionManagement';
 import PromptTabBar, { type TabKey } from './components/PromptTabBar';
 import { fadeInUp, springSnappy } from '../../theme/motion';
 import { SURFACE_HERO } from '../../theme/surfaces';
@@ -66,8 +66,8 @@ const PromptPackage: React.FC = () => {
       .then((r) => !cancelled && setCounts((c) => ({ ...c, list: r.meta.total })))
       .catch(() => {});
     if (canUpload) {
-      // my-items is bucketed by latest-version state; use the approved bucket for the badge count.
-      listMyPrompts({ status: 'approved', limit: 1 })
+      // Badge = total versions visible to the caller (owner=own, approver=all). pageSize=1 → tiny payload.
+      listVersions({ pageSize: 1 })
         .then((r) => !cancelled && setCounts((c) => ({ ...c, mine: r.meta.total })))
         .catch(() => {});
     }
@@ -136,7 +136,7 @@ const PromptPackage: React.FC = () => {
   // perms guaranteed non-null when !loading && !error
   const tabs = [
     { key: 'list' as TabKey, label: 'Danh sách', count: counts.list, panel: <PublishedList /> },
-    ...(canUpload ? [{ key: 'mine' as TabKey, label: 'My Prompt', count: counts.mine, panel: <MyPrompts /> }] : []),
+    ...(canUpload ? [{ key: 'mine' as TabKey, label: 'My Version', count: counts.mine, panel: <VersionManagement /> }] : []),
     ...(canApprove
       ? [{ key: 'review' as TabKey, label: 'Chờ phê duyệt', count: counts.review, panel: <ReviewQueue /> }]
       : []),

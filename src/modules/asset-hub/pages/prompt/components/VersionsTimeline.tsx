@@ -1,4 +1,6 @@
 // Vertical version-history timeline for a prompt package.
+// History is APPROVED-only (BE-filtered) — the timeline shows the published lineage; pending/rejected
+// drafts never appear here. Empty state = the prompt has no approved version yet.
 // Animation: stagger rows in; connector line drawn via border-l; state dots with ring halos.
 // Each node: colored dot + version_no + StateBadge + date + changelog note.
 
@@ -31,7 +33,7 @@ const VersionsTimeline: React.FC<VersionsTimelineProps> = ({ versions }) => {
         animate="show"
         className="text-sm italic text-ah-muted"
       >
-        Chưa có phiên bản nào.
+        Chưa có phiên bản được duyệt.
       </motion.p>
     );
   }

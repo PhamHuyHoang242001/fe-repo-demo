@@ -31,8 +31,10 @@ import type {
   PromptPackage,
   PromptVersion,
   PromptDiff,
-  MyPromptItem,
   MyPromptPermissions,
+  VersionRow,
+  ListVersionsParams,
+  VersionCodeOption,
 } from '../types';
 
 // Convenience helper — keeps call sites concise.
@@ -124,16 +126,21 @@ export function detail(id: number): Promise<PromptPackageDetail> {
   return axios.get(url(`/items/${id}`)).then((res) => res.data);
 }
 
-/** List the caller's OWN prompts (created_by), bucketed by the LATEST version's state.
- *  `status` is REQUIRED (pending | approved | rejected). Returns Paginated<MyPromptItem>. */
-export function myPrompts(params: {
-  status: 'pending' | 'approved' | 'rejected';
-  page?: number;
-  limit?: number;
-  search?: string;
-  category?: string;
-}): Promise<Paginated<MyPromptItem>> {
-  return axios.get(url('/my-items'), { params }).then((res) => res.data);
+/** Version-management list: flat 1 row per version, always scoped to the caller by the backend.
+ *  Package ids are a display filter only and use the comma-separated wire contract. */
+export function listVersions(params: ListVersionsParams = {}): Promise<Paginated<VersionRow>> {
+  const { prompt_package_id: packageIds, ...rest } = params;
+  const queryParams = {
+    ...rest,
+    ...(packageIds?.length ? { prompt_package_id: packageIds.join(',') } : {}),
+  };
+  return axios.get(url('/versions'), { params: queryParams }).then((res) => res.data);
+}
+
+/** Distinct package codes visible to the caller — feeds the filter multi-select. Same BE visibility
+ *  predicate as listVersions, so options never drift from the rows. */
+export function listVersionCodes(): Promise<{ data: VersionCodeOption[] }> {
+  return axios.get(url('/versions'), { params: { codesOnly: true } }).then((res) => res.data);
 }
 
 // ---- Upload --------------------------------------------------------------------

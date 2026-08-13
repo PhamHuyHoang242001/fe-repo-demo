@@ -36,6 +36,8 @@ export interface PromptVersion {
   id: number;
   prompt_package_id: number;
   version_no: number;
+  /** Predecessor approved version_no; null for the first-ever version. */
+  old_version?: number | null;
   state: 'pending' | 'approved' | 'rejected';
   name: string;
   short_description: string;
@@ -57,10 +59,48 @@ export interface PromptVersion {
 
 export interface PromptPackage {
   id: number;
+  /** Stable public code `prompt_<id>` (BE-generated). Present on detail responses. */
+  code?: string;
   active_version_id: number | null;
   status: 'active' | 'inactive';
   created_by: number;
   active_version?: PromptVersion | null;
+}
+
+// ---- Version management (flat 1-row-per-version list) --------------------------
+
+/** One row of the version-management list. Thin — carries NO content. */
+export interface VersionRow {
+  package_id: number;
+  code: string;
+  package_name: string;
+  version_id: number;
+  /** Predecessor approved version_no; null for the first-ever version. */
+  old_version: number | null;
+  version_no: number;
+  state: 'pending' | 'approved' | 'rejected';
+  submitted_by_email: string | null;
+  created_at: string;
+  /** True when this is a first-ever pending (state=pending AND old_version=null) → "mới" badge. */
+  is_first_pending: boolean;
+}
+
+export type VersionStateFilter = 'pending' | 'approved' | 'rejected' | 'all';
+
+export interface ListVersionsParams {
+  /** Package ids selected in the UI; the API client serializes them as `prompt_package_id=1,2,3`. */
+  prompt_package_id?: number[];
+  state?: VersionStateFilter;
+  page?: number;
+  pageSize?: number;
+  sort?: 'newest' | 'oldest';
+}
+
+/** A distinct-code option for the filter multi-select (from codesOnly mode). */
+export interface VersionCodeOption {
+  package_id: number;
+  code: string;
+  package_name: string;
 }
 
 // ---- Composite shapes ----------------------------------------------------------
@@ -80,34 +120,6 @@ export type PromptListItem = PromptPackage & {
   active_version: PromptVersion;
 };
 
-// ---- My Prompt ------------------------------------------------------------------
-
-/** Thin representative-version summary for the My Prompt grid. Mirrors the BE `my-items` projection,
- *  which deliberately OMITS `prompt_content`/`reject_reason` (grid renders only badge + identity).
- *  Do NOT widen this to the full `PromptVersion` — the BE does not ship those fields here. */
-export interface MyPromptVersionSummary {
-  id: number;
-  version_no: number;
-  state: 'pending' | 'approved' | 'rejected';
-  name: string;
-  short_description: string;
-  category: PromptCategory;
-  tags: string[];
-  avatar_url?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-/** A row in the My Prompt tab: the caller's own package + a representative version (active or latest). */
-export interface MyPromptItem {
-  id: number;
-  status: 'active' | 'inactive';
-  active_version_id: number | null;
-  created_by: number;
-  version: MyPromptVersionSummary | null;
-  latest_state: 'pending' | 'approved' | 'rejected' | null;
-}
-
 // ---- Diff ----------------------------------------------------------------------
 
 export interface PromptDiff {
@@ -117,6 +129,8 @@ export interface PromptDiff {
   metadata: {
     version_id: number;
     version_no: number;
+    /** Predecessor approved version_no; null for the first-ever version. Drives the pending label. */
+    old_version: number | null;
     state: string;
     name: string;
     category: string;

@@ -1,18 +1,18 @@
 // Skill Package workspace — tabbed shell with animated pill tab bar.
 //
 // Tab visibility (role gating):
-//   "Danh sách"      — always visible (view open to all authenticated users)
-//   "My Skill"       — visible when canUpload (the caller's own skills, all statuses)
-//   "Chờ phê duyệt"  — visible when canApprove only (all pending versions)
+//   "Danh sách"          — always visible (view open to all authenticated users)
+//   "My Version"          — visible when canUpload (own versions only: created OR submitted; approver too)
+//   "Chờ phê duyệt"      — visible when canApprove only (all pending versions)
 // Upload is NOT a tab — it's a header button (canUpload) → /asset-hub/skill/upload.
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSkillPermissions } from './hooks/useSkillPermissions';
-import { list as listSkills, reviews as listReviews, mySkills as listMySkills } from './api/skillApi';
+import { list as listSkills, reviews as listReviews, listVersions } from './api/skillApi';
 import PublishedList from './tabs/PublishedList';
 import ReviewQueue from './tabs/ReviewQueue';
-import MySkills from './tabs/MySkills';
+import VersionManagement from './tabs/VersionManagement';
 import SkillTabBar, { type TabKey } from './components/SkillTabBar';
 import { fadeInUp, springSnappy } from '../../theme/motion';
 import { SURFACE_HERO } from '../../theme/surfaces';
@@ -66,8 +66,8 @@ const SkillPackage: React.FC = () => {
       .then((r) => !cancelled && setCounts((c) => ({ ...c, list: r.meta.total })))
       .catch(() => {});
     if (canUpload) {
-      // my-items is bucketed by latest-version state; use the approved bucket for the badge count.
-      listMySkills({ status: 'approved', limit: 1 })
+      // Badge = total versions visible to the caller (owner=own, approver=all). pageSize=1 → tiny payload.
+      listVersions({ pageSize: 1 })
         .then((r) => !cancelled && setCounts((c) => ({ ...c, mine: r.meta.total })))
         .catch(() => {});
     }
@@ -136,7 +136,7 @@ const SkillPackage: React.FC = () => {
   // perms guaranteed non-null when !loading && !error
   const tabs = [
     { key: 'list' as TabKey, label: 'Danh sách', count: counts.list, panel: <PublishedList /> },
-    ...(canUpload ? [{ key: 'mine' as TabKey, label: 'My Skill', count: counts.mine, panel: <MySkills /> }] : []),
+    ...(canUpload ? [{ key: 'mine' as TabKey, label: 'My Version', count: counts.mine, panel: <VersionManagement /> }] : []),
     ...(canApprove
       ? [{ key: 'review' as TabKey, label: 'Chờ phê duyệt', count: counts.review, panel: <ReviewQueue /> }]
       : []),

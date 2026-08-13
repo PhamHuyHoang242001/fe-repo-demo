@@ -134,6 +134,15 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({ versionId, canApprove, onBa
   if (state === 'error') return <ErrorBanner message={errorMsg} onBack={onBack} />;
 
   const meta = diffData!.metadata;
+  // Pending version_no is a placeholder sharing the live approved number — never show it bare.
+  // First-ever pending → "mới"; a pending update → "v{old_version} · chờ duyệt". Approved shows the
+  // finalized number. Matches the version-management + queue labels.
+  const versionLabel =
+    meta.state === 'pending'
+      ? meta.old_version == null
+        ? 'mới'
+        : `v${meta.old_version} · chờ duyệt`
+      : `v${meta.version_no}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -156,7 +165,7 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({ versionId, canApprove, onBa
       <Reveal>
         <div className="flex items-center gap-3">
           <BackBtn onClick={onBack} />
-          <h2 className="text-base font-bold text-ah-ink">{meta.name} — v{meta.version_no}</h2>
+          <h2 className="text-base font-bold text-ah-ink">{meta.name} — {versionLabel}</h2>
           <StateBadge state={meta.state} />
         </div>
       </Reveal>

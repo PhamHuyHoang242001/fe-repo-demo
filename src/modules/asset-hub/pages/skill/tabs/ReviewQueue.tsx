@@ -31,7 +31,7 @@ const QueueRow: React.FC<{ version: SkillVersion; onClick: () => void }> = ({ ve
     <div className="flex flex-col gap-0.5 min-w-0">
       <span className="text-sm font-bold text-ah-ink truncate">{version.name}</span>
       <span className="text-[12px] text-ah-muted">
-        v{version.version_no} · {version.submitted_by_email ?? `#${version.submitted_by}`} · {new Date(version.created_at).toLocaleDateString('vi-VN')}
+        {version.old_version == null ? 'mới' : `v${version.old_version} · chờ duyệt`} · {version.submitted_by_email ?? `#${version.submitted_by}`} · {new Date(version.created_at).toLocaleDateString('vi-VN')}
       </span>
     </div>
     <div className="flex items-center gap-2 shrink-0">

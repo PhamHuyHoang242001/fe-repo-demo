@@ -87,6 +87,11 @@ const DetailHero: React.FC<DetailHeroProps> = ({ pkg }) => {
               >
                 v{v.version_no}
               </motion.span>
+              {pkg.code && (
+                <span className="cursor-default rounded-full bg-white/10 px-2.5 py-0.5 font-mono text-[11px] font-semibold text-white/90 ring-1 ring-white/20">
+                  {pkg.code}
+                </span>
+              )}
               <StatusBadge status={pkg.status} />
             </div>
 
