@@ -154,3 +154,17 @@ export interface MyPromptPermissions {
   canUpload: boolean;
   canApprove: boolean;
 }
+
+// ---- Workspace stats -----------------------------------------------------------
+
+/** Dashboard counters for the whole Prompt workspace (BE GET /prompt/stats → { data }).
+ *  `total` = distinct live packages (one per package, counted by its latest version state), so
+ *  `pending + approved + rejected === total`. `published` is separate: packages whose active
+ *  version is approved + status=active (may differ from `approved` when a newer draft is pending). */
+export interface WorkspaceStats {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  published: number;
+}

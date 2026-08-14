@@ -36,6 +36,7 @@ import type {
   ListVersionsParams,
   VersionCodeOption,
   PromptVersionDetail,
+  WorkspaceStats,
 } from '../types';
 
 // Convenience helper — keeps call sites concise.
@@ -206,4 +207,12 @@ export function toggleStatus(id: number, status: 'active' | 'inactive'): Promise
  *  Fetched once on mount by usePromptPermissions; not cached globally. */
 export function myPermissions(): Promise<MyPromptPermissions> {
   return axios.get(url('/my-permissions')).then((res) => res.data);
+}
+
+// ---- Stats ---------------------------------------------------------------------
+
+/** Whole-workspace Prompt dashboard counters (total/pending/approved/rejected/published).
+ *  BE wraps the payload in `{ data }`; unwrap to the flat counters for the caller. */
+export function stats(): Promise<WorkspaceStats> {
+  return axios.get(url('/stats')).then((res) => res.data.data);
 }
