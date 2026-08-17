@@ -122,6 +122,8 @@ export interface PromptDiff {
   metadata: {
     version_id: number;
     version_no: number;
+    /** Stable public code of the item (prompt_<id>). Null if the package row is missing. */
+    code: string | null;
     /** Predecessor approved version_no; null for the first-ever version. Drives the pending label. */
     old_version: number | null;
     state: string;

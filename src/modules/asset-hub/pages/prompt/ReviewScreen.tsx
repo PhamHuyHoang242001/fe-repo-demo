@@ -41,6 +41,9 @@ const MetaPanel: React.FC<{ meta: PromptDiff['metadata'] }> = ({ meta }) => (
   <motion.div variants={fadeInUp} initial="hidden" animate="show" className={`${CARD_BASE} px-5 py-4`}>
     <StaggerList>
       <div className="flex flex-col gap-2.5">
+        {meta.code && (
+          <StaggerItem><MetaRow label="Code" value={<span className="font-mono text-[13px]">{meta.code}</span>} /></StaggerItem>
+        )}
         <StaggerItem><MetaRow label="Category" value={meta.category} /></StaggerItem>
         {meta.tags.length > 0 && (
           <StaggerItem>
