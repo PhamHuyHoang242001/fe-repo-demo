@@ -5,6 +5,7 @@ import DiffView from './DiffView';
 import { MetaRow, StateBadge } from './ReviewShared';
 import { CARD_BASE } from '../../../theme/surfaces';
 import { fadeInUp } from '../../../theme/motion';
+import { resolveCategoryLabel } from '../../../utils/category';
 
 interface Props {
   detail: SkillVersionDetail;
@@ -17,7 +18,7 @@ const VersionDetailContent: React.FC<Props> = ({ detail }) => {
       <motion.div variants={fadeInUp} initial="hidden" animate="show" className={`${CARD_BASE} px-5 py-4`}>
         <div className="flex flex-col gap-2.5">
           <MetaRow label="Mã package" value={pkg.code ?? `#${pkg.id}`} />
-          <MetaRow label="Danh mục" value={version.category} />
+          <MetaRow label="Danh mục" value={resolveCategoryLabel(version.category)} />
           <MetaRow label="Mô tả" value={version.short_description || '—'} />
           <MetaRow label="Tags" value={version.tags.length ? version.tags.join(', ') : '—'} />
           <MetaRow label="Người gửi" value={version.submitted_by_email ?? `#${version.submitted_by}`} />

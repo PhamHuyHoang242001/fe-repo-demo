@@ -85,14 +85,14 @@ const PublishedList: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<FiltersState>({ search: '', category: '', tags: [], sort: 'newest' });
+  const [filters, setFilters] = useState<FiltersState>({ search: '', categoryId: null, tags: [], sort: 'newest' });
 
   // Stable ref to latest filters for use inside loadMore callback.
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
   // Server-relevant filter key — excludes `sort` (sort is client-side, must NOT trigger a refetch).
-  const serverKey = JSON.stringify({ s: filters.search, c: filters.category, t: filters.tags });
+  const serverKey = JSON.stringify({ s: filters.search, c: filters.categoryId, t: filters.tags });
 
   const hasMore = items.length < total;
 
@@ -111,12 +111,12 @@ const PublishedList: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { search, category, tags } = currentFilters;
+      const { search, categoryId, tags } = currentFilters;
       const res = await listSkills({
         page: nextPage,
         limit: PAGE_LIMIT,
         ...(search ? { search } : {}),
-        ...(category ? { category } : {}),
+        ...(categoryId != null ? { category_id: categoryId } : {}),
         ...(tags.length ? { tags } : {}),
       });
       setTotal(res.meta.total);

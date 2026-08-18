@@ -79,7 +79,7 @@ export interface UploadNewPayload {
   avatar_url?: string;
   name: string;
   short_description: string;
-  category: string;
+  category_id: number;
   tags?: string[];
 }
 
@@ -116,7 +116,7 @@ export function list(
     page?: number;
     limit?: number;
     search?: string;
-    category?: string;
+    category_id?: number;
     tags?: string[];
   } = {},
 ): Promise<Paginated<PromptListItem>> {

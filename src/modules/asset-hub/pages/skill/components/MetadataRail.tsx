@@ -6,6 +6,7 @@ import React from 'react';
 import type { SkillPackageDetail } from '../types';
 import { formatDate } from '../utils/format';
 import { StaggerList, StaggerItem } from './motion-primitives';
+import { resolveCategoryLabel } from '../../../utils/category';
 
 interface RowProps {
   label: string;
@@ -46,7 +47,7 @@ const MetadataRail: React.FC<MetadataRailProps> = ({ pkg }) => {
         {v && (
           <Row label="Danh mục">
             <span className="rounded-md bg-ah-pale px-2 py-0.5 text-[12px] font-semibold text-ah-ink">
-              {v.category}
+              {resolveCategoryLabel(v.category)}
             </span>
           </Row>
         )}

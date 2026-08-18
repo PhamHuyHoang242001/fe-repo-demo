@@ -8,6 +8,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { uploadNew, uploadUpdate, uploadFileToStrapi, detail as fetchDetail } from './api/promptApi';
 import { mapUploadError } from './components/UploadFormHelpers';
+import type { PromptCategory } from './types';
+import { resolveCategoryId } from '../../utils/category';
 import {
   FormHeader,
   SubmitButton,
@@ -32,7 +34,8 @@ const PromptForm: React.FC<{ mode: Mode }> = ({ mode }) => {
 
   const [name, setName] = useState('');
   const [shortDesc, setShortDesc] = useState('');
-  const [category, setCategory] = useState('');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<PromptCategory | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [promptContent, setPromptContent] = useState('');
   const [avatar, setAvatar] = useState<File | null>(null);
@@ -57,7 +60,8 @@ const PromptForm: React.FC<{ mode: Mode }> = ({ mode }) => {
         if (rep) {
           setName(rep.name);
           setShortDesc(rep.short_description);
-          setCategory(rep.category);
+          setCategoryId(rep.category_id ?? resolveCategoryId(rep.category_detail ?? rep.category));
+          setSelectedCategory(rep.category_detail ?? rep.category ?? null);
           setTags(rep.tags ?? []);
           setExistingAvatarUrl(rep.avatar_url ?? null);
           setPromptContent(rep.prompt_content ?? '');
@@ -72,7 +76,7 @@ const PromptForm: React.FC<{ mode: Mode }> = ({ mode }) => {
     const errs: FormErrors = {};
     if (!name.trim()) errs.name = 'Tên là bắt buộc';
     if (!shortDesc.trim()) errs.shortDesc = 'Mô tả ngắn là bắt buộc';
-    if (!category) errs.category = 'Category là bắt buộc';
+    if (categoryId == null) errs.category = 'Category là bắt buộc';
     if (!promptContent.trim()) errs.promptContent = 'Vui lòng nhập nội dung prompt';
     else if (promptContent.length > PROMPT_CONTENT_MAX) errs.promptContent = `Prompt tối đa ${PROMPT_CONTENT_MAX.toLocaleString()} ký tự`;
     return errs;
@@ -96,7 +100,7 @@ const PromptForm: React.FC<{ mode: Mode }> = ({ mode }) => {
           avatar_url,
           name: name.trim(),
           short_description: shortDesc.trim(),
-          category,
+          category_id: categoryId!,
           tags,
         };
 
@@ -119,7 +123,7 @@ const PromptForm: React.FC<{ mode: Mode }> = ({ mode }) => {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, packageId, name, shortDesc, category, tags, promptContent, avatar, changelogNote, existingAvatarUrl],
+    [mode, packageId, name, shortDesc, categoryId, tags, promptContent, avatar, changelogNote, existingAvatarUrl],
   );
 
   if (loadState !== 'ready') {
@@ -142,7 +146,8 @@ const PromptForm: React.FC<{ mode: Mode }> = ({ mode }) => {
         <MainFieldsCard
           name={name} setName={setName}
           shortDesc={shortDesc} setShortDesc={setShortDesc}
-          category={category} setCategory={setCategory}
+          categoryId={categoryId} setCategoryId={setCategoryId}
+          selectedCategory={selectedCategory}
           tags={tags} setTags={setTags}
           errors={errors}
         />

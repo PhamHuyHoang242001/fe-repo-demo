@@ -125,7 +125,7 @@ const QueueList: React.FC<QueueListProps> = ({ onSelectVersion, refreshTick }) =
   const visible = useMemo(() => {
     const arr = items.filter(
       (v) =>
-        (!filters.category || v.category === filters.category) &&
+        (filters.categoryId == null || v.category_id === filters.categoryId) &&
         (!filters.submittedBy || String(v.submitted_by) === filters.submittedBy),
     );
     arr.sort((a, b) => {

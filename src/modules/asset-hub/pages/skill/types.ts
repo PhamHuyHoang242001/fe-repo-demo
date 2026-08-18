@@ -16,18 +16,11 @@ export interface Paginated<T> {
 
 // ---- Category ------------------------------------------------------------------
 
-// Mirrors BE SkillCategory enum (skill-category.constant.ts — single source of truth).
-// Update both locations when the taxonomy changes.
-export const SKILL_CATEGORIES = [
-  'general',
-  'data-analysis',
-  'automation',
-  'integration',
-  'reporting',
-  'other',
-] as const;
+import type { AssetHubCategory, AssetHubCategoryValue, AssetHubCategoryType } from '../../types/category';
 
-export type SkillCategory = (typeof SKILL_CATEGORIES)[number];
+export type SkillCategoryType = Extract<AssetHubCategoryType, 'skill'>;
+export type SkillCategory = AssetHubCategoryValue;
+export type SkillCategoryRef = AssetHubCategory;
 
 // ---- Core entities -------------------------------------------------------------
 
@@ -49,7 +42,9 @@ export interface SkillVersion {
   state: 'pending' | 'approved' | 'rejected';
   name: string;
   short_description: string;
+  category_id: number | null;
   category: SkillCategory;
+  category_detail?: SkillCategoryRef | null;
   tags: string[];
   /** Skill .zip file object (metadata folded from skill_version_files). Null when absent. */
   file: SkillFile | null;
@@ -146,7 +141,8 @@ export interface SkillDiff {
     old_version: number | null;
     state: string;
     name: string;
-    category: string;
+    category_id: number | null;
+    category: SkillCategory;
     tags: string[];
     changelog_note: string | null;
     submitted_by: number;

@@ -8,19 +8,19 @@
 import React from 'react';
 import { Select } from 'antd';
 import { motion } from 'framer-motion';
-import { PROMPT_CATEGORIES } from '../types';
 import { SURFACE_GLASS } from '../../../theme/surfaces';
 import { fadeInUp } from '../../../theme/motion';
+import CategorySelect from '../../../components/CategorySelect';
 
 export type ReviewSortKey = 'newest' | 'oldest' | 'name';
 
 export interface ReviewFilters {
   submittedBy: string; // '' = all; else String(submitted_by)
-  category: string; // '' = all; else category slug
+  categoryId: number | null; // null = all; else category id
   sort: ReviewSortKey;
 }
 
-export const DEFAULT_REVIEW_FILTERS: ReviewFilters = { submittedBy: '', category: '', sort: 'newest' };
+export const DEFAULT_REVIEW_FILTERS: ReviewFilters = { submittedBy: '', categoryId: null, sort: 'newest' };
 
 const SORT_OPTIONS: { value: ReviewSortKey; label: string }[] = [
   { value: 'newest', label: 'Mới nhất' },
@@ -61,16 +61,15 @@ const ReviewQueueFilters: React.FC<Props> = ({ filters, submitters, onChange, co
       />
 
       {/* Danh mục */}
-      <Select
-        value={filters.category}
-        onChange={(v) => set({ category: v })}
+      <CategorySelect
+        type="prompt"
+        value={filters.categoryId}
+        onChange={(v) => set({ categoryId: v })}
         className="min-w-[168px]"
         size="large"
         aria-label="Danh mục"
-        options={[
-          { value: '', label: 'Tất cả danh mục' },
-          ...PROMPT_CATEGORIES.map((c) => ({ value: c, label: c })),
-        ]}
+        ariaLabel="Danh mục"
+        placeholder="Tất cả danh mục"
       />
 
       {/* Sắp xếp */}

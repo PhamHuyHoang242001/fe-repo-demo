@@ -4,11 +4,12 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Input, Select } from 'antd';
+import { Input } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PROMPT_CATEGORIES } from '../types';
+import type { PromptCategory } from '../types';
 import { Field, TagInput } from './UploadFormHelpers';
 import AvatarPicker from './AvatarPicker';
+import CategorySelect from '../../../components/CategorySelect';
 import { StaggerList, StaggerItem, Reveal } from './motion-primitives';
 import { CARD_BASE } from '../../../theme/surfaces';
 import { scaleIn, fadeInUp, springSoft } from '../../../theme/motion';
@@ -92,13 +93,14 @@ export const NotReadyScreen: React.FC<{ loadState: NotReadyState }> = ({ loadSta
 interface MainFieldsProps {
   name: string; setName: (v: string) => void;
   shortDesc: string; setShortDesc: (v: string) => void;
-  category: string; setCategory: (v: string) => void;
+  categoryId: number | null; setCategoryId: (v: number | null) => void;
+  selectedCategory?: PromptCategory;
   tags: string[]; setTags: (v: string[]) => void;
   errors: { name?: string; shortDesc?: string; category?: string };
 }
 
 export const MainFieldsCard: React.FC<MainFieldsProps> = ({
-  name, setName, shortDesc, setShortDesc, category, setCategory, tags, setTags, errors,
+  name, setName, shortDesc, setShortDesc, categoryId, setCategoryId, selectedCategory, tags, setTags, errors,
 }) => (
   <motion.div
     variants={fadeInUp}
@@ -122,10 +124,15 @@ export const MainFieldsCard: React.FC<MainFieldsProps> = ({
       </StaggerItem>
       <StaggerItem>
         <Field label="Category" required error={errors.category}>
-          <Select size="large" value={category || undefined} onChange={setCategory}
-            placeholder="Chọn category…" status={errors.category ? 'error' : undefined}
+          <CategorySelect
+            type="prompt"
+            value={categoryId}
+            onChange={setCategoryId}
+            placeholder="Chọn category…"
+            status={errors.category ? 'error' : undefined}
             className="w-full"
-            options={PROMPT_CATEGORIES.map((c) => ({ value: c, label: c }))} />
+            selectedCategory={selectedCategory}
+          />
         </Field>
       </StaggerItem>
       <StaggerItem>

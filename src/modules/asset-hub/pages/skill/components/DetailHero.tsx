@@ -10,6 +10,7 @@ import { fadeInUp, hoverPress } from '../../../theme/motion';
 import { formatDate } from '../utils/format';
 import { StatusBadge } from './StatusBadge';
 import SkillActions from './SkillActions';
+import { resolveCategoryLabel } from '../../../utils/category';
 
 // Large avatar variant — white ring on gradient; initials fallback.
 const HeroAvatar: React.FC<{ name: string; avatarUrl?: string | null }> = ({ name, avatarUrl }) => {
@@ -103,7 +104,7 @@ const DetailHero: React.FC<DetailHeroProps> = ({ pkg }) => {
             {/* Category + tags + date */}
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
               <span className="rounded-md bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white ring-1 ring-white/20">
-                {v.category}
+                {resolveCategoryLabel(v.category)}
               </span>
               {v.tags.map((t) => (
                 <span key={t} className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/90">

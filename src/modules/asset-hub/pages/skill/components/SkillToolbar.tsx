@@ -5,9 +5,9 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Input, Select } from 'antd';
-import { SKILL_CATEGORIES } from '../types';
 import { useDebounce } from '../hooks/useDebounce';
 import { SURFACE_GLASS } from '../../../theme/surfaces';
+import CategorySelect from '../../../components/CategorySelect';
 
 const SearchIcon: React.FC = () => (
   <svg className="h-4 w-4 text-ah-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -30,7 +30,7 @@ export type SortKey = 'newest' | 'name' | 'version';
 
 export interface SkillFilters {
   search: string;
-  category: string;
+  categoryId: number | null;
   tags: string[];
   sort: SortKey;
 }
@@ -49,7 +49,7 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 
 export const SkillToolbar: React.FC<SkillToolbarProps> = ({ onFilterChange, count }) => {
   const [searchRaw, setSearchRaw] = useState('');
-  const [category, setCategory] = useState('');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [sort, setSort] = useState<SortKey>('newest');
   const [tags, setTags] = useState<string[]>([]);
   const [scrolled, setScrolled] = useState(false);
@@ -68,9 +68,9 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({ onFilterChange, coun
   const searchDebounced = useDebounce(searchRaw, 350);
 
   React.useEffect(() => {
-    onFilterChange({ search: searchDebounced, category, tags, sort });
+    onFilterChange({ search: searchDebounced, categoryId, tags, sort });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchDebounced, category, tags, sort]);
+  }, [searchDebounced, categoryId, tags, sort]);
 
   return (
     <div
@@ -92,16 +92,14 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({ onFilterChange, coun
         />
 
         {/* Category */}
-        <Select
-          value={category}
-          onChange={setCategory}
+        <CategorySelect
+          type="skill"
+          value={categoryId}
+          onChange={setCategoryId}
           size="large"
           className="min-w-[176px]"
-          aria-label="Danh mục"
-          options={[
-            { value: '', label: 'Tất cả danh mục' },
-            ...SKILL_CATEGORIES.map((c) => ({ value: c, label: c })),
-          ]}
+          ariaLabel="Danh mục"
+          placeholder="Tất cả danh mục"
         />
 
         {/* Sort */}

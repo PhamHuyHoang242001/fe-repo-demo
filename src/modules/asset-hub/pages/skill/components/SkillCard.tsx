@@ -11,6 +11,7 @@ import { GRADIENT_BORDER_HOVER, GRADIENT_BORDER_MASK } from '../../../theme/surf
 import { hoverPress, hoverLift, staggerItem } from '../../../theme/motion';
 import { formatBytes, formatDate } from '../utils/format';
 import { MotionCard } from './motion-primitives';
+import { resolveCategoryLabel } from '../../../utils/category';
 
 interface SkillCardProps {
   skill: SkillListItem;
@@ -93,7 +94,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill }) => {
           </div>
           {/* Category pill — full border, full rounded */}
           <span className="mt-1.5 inline-flex items-center rounded-full border border-ah-line bg-ah-pale px-2 py-0.5 text-[10px] font-semibold text-ah-muted">
-            {CATEGORY_LABELS[v.category] ?? v.category}
+            {CATEGORY_LABELS[typeof v.category === 'string' ? v.category : ''] ?? resolveCategoryLabel(v.category)}
           </span>
         </div>
       </div>

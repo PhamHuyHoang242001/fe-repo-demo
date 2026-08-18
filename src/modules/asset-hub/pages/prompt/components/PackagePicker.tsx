@@ -10,6 +10,7 @@ import { list } from '../api/promptApi';
 import { useDebounce } from '../hooks/useDebounce';
 import { staggerContainer, staggerItem, scaleIn, springSoft } from '../../../theme/motion';
 import type { PromptListItem } from '../types';
+import { resolveCategoryLabel } from '../../../utils/category';
 
 const SearchIcon: React.FC = () => (
   <svg className="h-4 w-4 text-ah-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -73,7 +74,7 @@ const PackagePicker: React.FC<PackagePickerProps> = ({ value, onChange, error })
             <div className="flex flex-col gap-0.5">
               <span className="text-sm font-bold text-ah-ink">{value.active_version.name}</span>
               <span className="text-xs text-ah-muted">
-                ID #{value.id} · {value.active_version.category}
+                ID #{value.id} · {resolveCategoryLabel(value.active_version.category)}
               </span>
             </div>
             <div className="flex items-center gap-3">
@@ -159,7 +160,7 @@ const PackagePicker: React.FC<PackagePickerProps> = ({ value, onChange, error })
                       <div className="flex flex-col gap-0.5">
                         <span className="text-sm font-bold text-ah-ink">{pkg.active_version.name}</span>
                         <span className="text-xs text-ah-muted">
-                          ID #{pkg.id} · {pkg.active_version.category}
+                          ID #{pkg.id} · {resolveCategoryLabel(pkg.active_version.category)}
                         </span>
                       </div>
                     </motion.button>

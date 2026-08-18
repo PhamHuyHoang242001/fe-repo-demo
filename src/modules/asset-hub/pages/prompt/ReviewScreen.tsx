@@ -15,6 +15,7 @@ import { StateBadge, MetaRow, SpinnerRow, ErrorBanner } from './components/Revie
 import { Reveal, StaggerList, StaggerItem } from './components/motion-primitives';
 import { CARD_BASE, SURFACE_GLASS } from '../../theme/surfaces';
 import { fadeInUp, hoverPress } from '../../theme/motion';
+import { resolveCategoryLabel } from '../../utils/category';
 
 interface ReviewScreenProps {
   versionId: number;
@@ -44,7 +45,7 @@ const MetaPanel: React.FC<{ meta: PromptDiff['metadata'] }> = ({ meta }) => (
         {meta.code && (
           <StaggerItem><MetaRow label="Code" value={<span className="font-mono text-[13px]">{meta.code}</span>} /></StaggerItem>
         )}
-        <StaggerItem><MetaRow label="Category" value={meta.category} /></StaggerItem>
+        <StaggerItem><MetaRow label="Category" value={resolveCategoryLabel(meta.category)} /></StaggerItem>
         {meta.tags.length > 0 && (
           <StaggerItem>
             <MetaRow label="Tags" value={

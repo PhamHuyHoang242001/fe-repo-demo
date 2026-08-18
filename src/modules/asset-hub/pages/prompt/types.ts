@@ -16,11 +16,11 @@ export interface Paginated<T> {
 
 // ---- Category ------------------------------------------------------------------
 
-// Mirrors BE PromptCategory enum (prompt-category.constant.ts — single source of truth).
-// Update both locations when the taxonomy changes.
-export const PROMPT_CATEGORIES = ['writing', 'coding', 'marketing', 'analysis', 'roleplay', 'data', 'other'] as const;
+import type { AssetHubCategory, AssetHubCategoryValue, AssetHubCategoryType } from '../../types/category';
 
-export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
+export type PromptCategoryType = Extract<AssetHubCategoryType, 'prompt'>;
+export type PromptCategory = AssetHubCategoryValue;
+export type PromptCategoryRef = AssetHubCategory;
 
 // ---- Core entities -------------------------------------------------------------
 
@@ -33,7 +33,9 @@ export interface PromptVersion {
   state: 'pending' | 'approved' | 'rejected';
   name: string;
   short_description: string;
+  category_id: number | null;
   category: PromptCategory;
+  category_detail?: PromptCategoryRef | null;
   tags: string[];
   /** Strapi URL of the avatar image. Null when no avatar is set. */
   avatar_url?: string | null;
@@ -128,7 +130,8 @@ export interface PromptDiff {
     old_version: number | null;
     state: string;
     name: string;
-    category: string;
+    category_id: number | null;
+    category: PromptCategory;
     tags: string[];
     changelog_note: string | null;
     submitted_by: number;
