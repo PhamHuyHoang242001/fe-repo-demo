@@ -163,15 +163,23 @@ export function uploadUpdate(id: number, payload: UploadUpdatePayload): Promise<
 // ---- Review --------------------------------------------------------------------
 
 /** List pending versions for review.
- *  scope='mine' returns only the caller's own uploads (BE enforces canApprove for 'all'). */
+ *  Approvers see all pending; everyone else is forced to own-submitted.
+ *  submitted_by / category_id / sort are applied server-side on the pending queue. */
 export function reviews(
   params: {
-    scope?: 'all' | 'mine';
     page?: number;
     limit?: number;
+    submitted_by?: number;
+    category_id?: number;
+    sort?: 'newest' | 'oldest' | 'name';
   } = {},
 ): Promise<Paginated<SkillVersion>> {
   return axios.get(url('/reviews'), { params }).then((res) => res.data);
+}
+
+/** Distinct pending-version submitters for the review-queue "Người tạo" filter. */
+export function reviewSubmitters(): Promise<{ data: Array<{ id: number; email: string | null }> }> {
+  return axios.get(url('/reviews/submitters')).then((res) => res.data);
 }
 
 /** Git-style diff for a pending version vs its predecessor's skill.md. */

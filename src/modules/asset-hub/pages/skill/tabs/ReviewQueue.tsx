@@ -1,16 +1,16 @@
 // Tab: Chờ duyệt — review queue linking to the standalone version detail route.
 //
-// Always loads the FULL pending queue (scope='all'); no tabs. The BE forces submitted_by=me
-// for non-approvers, so this stays safe for both roles. Creator / category / sort filters are
-// applied client-side over the loaded page (the reviews API has no filter/sort params).
+// Always loads the pending queue; no tabs. The BE forces submitted_by=me for
+// non-approvers, so this stays safe for both roles. Creator / category / sort are
+// sent as query params and applied server-side.
 //
 // A 403 from reviews() is shown as an inline banner — no crash.
 // No import from src/pages/* or src/hooks/* (H4).
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { reviews } from '../api/skillApi';
+import { reviews, reviewSubmitters } from '../api/skillApi';
 import type { SkillVersion } from '../types';
 import { StateBadge, SpinnerRow, ErrorBanner } from '../components/ReviewShared';
 import ReviewQueueFilters, { DEFAULT_REVIEW_FILTERS, type ReviewFilters } from '../components/ReviewQueueFilters';
@@ -80,10 +80,28 @@ interface QueueListProps {
 
 const QueueList: React.FC<QueueListProps> = ({ onSelectVersion, refreshTick }) => {
   const [items, setItems] = useState<SkillVersion[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [filters, setFilters] = useState<ReviewFilters>(DEFAULT_REVIEW_FILTERS);
+  const [submitters, setSubmitters] = useState<Array<{ id: number; email: string | null }>>([]);
+
+  const hasActiveFilter = Boolean(filters.submittedBy) || filters.categoryId != null;
+
+  useEffect(() => {
+    let cancelled = false;
+    reviewSubmitters()
+      .then((res) => {
+        if (!cancelled) setSubmitters(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setSubmitters([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshTick]);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,11 +109,16 @@ const QueueList: React.FC<QueueListProps> = ({ onSelectVersion, refreshTick }) =
     setForbidden(false);
     setErrorMsg(null);
 
-    // Load the full pending queue; BE forces submitted_by=me for non-approvers.
-    reviews({ scope: 'all', limit: 100 })
+    reviews({
+      limit: 100,
+      sort: filters.sort,
+      ...(filters.submittedBy ? { submitted_by: Number(filters.submittedBy) } : {}),
+      ...(filters.categoryId != null ? { category_id: filters.categoryId } : {}),
+    })
       .then((res) => {
         if (!cancelled) {
           setItems(res.data);
+          setTotal(res.meta?.total ?? res.data.length);
           setLoading(false);
         }
       })
@@ -111,38 +134,20 @@ const QueueList: React.FC<QueueListProps> = ({ onSelectVersion, refreshTick }) =
     return () => {
       cancelled = true;
     };
-  }, [refreshTick]);
+  }, [refreshTick, filters.submittedBy, filters.categoryId, filters.sort]);
 
-  // Distinct creators present in the loaded queue (ascending) — feeds the "Người tạo" filter.
-  // Carries the resolved email per id so the dropdown labels show email; value stays the numeric id.
-  const submitters = useMemo(() => {
-    const byId = new Map<number, string | null>();
-    for (const v of items) if (!byId.has(v.submitted_by)) byId.set(v.submitted_by, v.submitted_by_email ?? null);
-    return Array.from(byId, ([id, email]) => ({ id, email })).sort((a, b) => a.id - b.id);
-  }, [items]);
-
-  // Apply creator/category filters, then sort — all client-side over the loaded page.
-  const visible = useMemo(() => {
-    const arr = items.filter(
-      (v) =>
-        (filters.categoryId == null || v.category_id === filters.categoryId) &&
-        (!filters.submittedBy || String(v.submitted_by) === filters.submittedBy),
-    );
-    arr.sort((a, b) => {
-      if (filters.sort === 'name') return a.name.localeCompare(b.name, 'vi');
-      const da = new Date(a.created_at).getTime();
-      const db = new Date(b.created_at).getTime();
-      return filters.sort === 'oldest' ? da - db : db - da;
-    });
-    return arr;
-  }, [items, filters]);
-
-  const showEmpty = !loading && !forbidden && !errorMsg && visible.length === 0;
-  const emptyText = items.length === 0 ? 'Không có phiên bản nào đang chờ duyệt.' : 'Không có kết quả phù hợp bộ lọc.';
+  const showEmpty = !loading && !forbidden && !errorMsg && items.length === 0;
+  const emptyText = hasActiveFilter ? 'Không có kết quả phù hợp bộ lọc.' : 'Không có phiên bản nào đang chờ duyệt.';
 
   return (
     <div className="flex flex-col gap-3">
-      <ReviewQueueFilters filters={filters} submitters={submitters} onChange={setFilters} count={visible.length} />
+      <ReviewQueueFilters
+        filters={filters}
+        submitters={submitters}
+        onChange={setFilters}
+        count={items.length}
+        total={total > items.length ? total : undefined}
+      />
 
       {loading && <SpinnerRow />}
 
@@ -151,9 +156,9 @@ const QueueList: React.FC<QueueListProps> = ({ onSelectVersion, refreshTick }) =
 
       {showEmpty && <QueueEmptyState text={emptyText} />}
 
-      {!loading && !forbidden && !errorMsg && visible.length > 0 && (
+      {!loading && !forbidden && !errorMsg && items.length > 0 && (
         <StaggerList className="flex flex-col gap-2">
-          {visible.map((v) => (
+          {items.map((v) => (
             <StaggerItem key={v.id}>
               <QueueRow version={v} onClick={() => onSelectVersion(v.id)} />
             </StaggerItem>

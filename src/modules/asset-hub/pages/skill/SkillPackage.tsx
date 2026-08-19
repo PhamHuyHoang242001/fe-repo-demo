@@ -72,7 +72,7 @@ const SkillPackage: React.FC = () => {
         .catch(() => {});
     }
     if (canApprove) {
-      listReviews({ scope: 'all', limit: 1 })
+      listReviews({ limit: 1 })
         .then((r) => !cancelled && setCounts((c) => ({ ...c, review: r.meta.total })))
         .catch(() => {});
     }

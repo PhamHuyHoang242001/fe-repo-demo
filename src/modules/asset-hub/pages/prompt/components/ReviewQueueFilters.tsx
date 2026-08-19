@@ -1,6 +1,5 @@
 // Filter bar for the review queue: creator (submitted_by), category, sort.
-// Client-side only — filters/reorders the already-loaded pending queue; the reviews API
-// has no filter/sort params (mirrors the published-list sort convention).
+// Changing a control refetches GET /reviews with the matching query params.
 //
 // Controls are antd Select (themed to ah-* via ConfigProvider); the bar is a full-frame
 // frosted panel that fades in on mount.
@@ -35,9 +34,11 @@ interface Props {
   submitters: Array<{ id: number; email: string | null }>;
   onChange: (next: ReviewFilters) => void;
   count?: number;
+  /** Full matching total when larger than the rendered page (limit 100). */
+  total?: number;
 }
 
-const ReviewQueueFilters: React.FC<Props> = ({ filters, submitters, onChange, count }) => {
+const ReviewQueueFilters: React.FC<Props> = ({ filters, submitters, onChange, count, total }) => {
   const set = (patch: Partial<ReviewFilters>) => onChange({ ...filters, ...patch });
 
   return (
@@ -84,7 +85,8 @@ const ReviewQueueFilters: React.FC<Props> = ({ filters, submitters, onChange, co
 
       {typeof count === 'number' && (
         <span className="ml-auto shrink-0 text-xs text-ah-muted">
-          <span className="font-semibold text-ah-ink tabular-nums">{count}</span> prompt
+          <span className="font-semibold text-ah-ink tabular-nums">{count}</span>
+          {typeof total === 'number' ? ` / ${total}` : ''} prompt
         </span>
       )}
     </motion.div>

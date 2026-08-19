@@ -87,6 +87,8 @@ export interface VersionRow {
   state: 'pending' | 'approved' | 'rejected';
   submitted_by_email: string | null;
   created_at: string;
+  /** Version icon URL (BE column avatar_url). Null when none was uploaded. */
+  avatar_url: string | null;
   /** True when this is a first-ever pending (state=pending AND old_version=null) → "mới" badge. */
   is_first_pending: boolean;
 }
@@ -141,6 +143,7 @@ export interface SkillDiff {
     old_version: number | null;
     state: string;
     name: string;
+    avatar_url: string | null;
     category_id: number | null;
     category: SkillCategory;
     tags: string[];
