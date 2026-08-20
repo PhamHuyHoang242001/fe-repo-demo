@@ -1,7 +1,9 @@
 // SkillForm — route page for both New upload (/skill/upload) and Edit (/skill/:id/edit).
-// Visual redesign: antd controls, stagger sections, animated error/submit.
-// Extracted sub-components → SkillFormSections.tsx.
-// Form logic, controlled state, validation, submit handler, and API calls are UNCHANGED.
+//
+// Edit submits ONE request: PUT items/:id/versions carries the new version AND the package
+// metadata (publishing unit, people in charge). There is no metadata-only endpoint, so every
+// metadata field must be prefilled or a save would blank it. Editing stays blocked while a
+// version is pending review.
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,6 +12,7 @@ import { uploadNew, uploadUpdate, uploadFileToStrapi, detail as fetchDetail } fr
 import { mapUploadError } from './components/UploadFormHelpers';
 import type { SkillCategory } from './types';
 import { resolveCategoryId } from '../../utils/category';
+import { useItemMetaFields } from '../../hooks/useItemMetaFields';
 import {
   FormHeader,
   SubmitButton,
@@ -19,9 +22,19 @@ import {
   ChangelogCard,
   GlobalErrorBanner,
 } from './components/SkillFormSections';
+import { OwnershipCard, UsageGuideCard } from './components/SkillFormMetaSections';
 
 type Mode = 'new' | 'edit';
-interface FormErrors { name?: string; shortDesc?: string; category?: string; zip?: string; global?: string }
+interface FormErrors {
+  name?: string;
+  shortDesc?: string;
+  category?: string;
+  publisher?: string;
+  responsibles?: string;
+  guide?: string;
+  zip?: string;
+  global?: string;
+}
 type LoadState = 'loading' | 'ready' | 'forbidden' | 'pending' | 'error';
 
 const SkillForm: React.FC<{ mode: Mode }> = ({ mode }) => {
@@ -33,7 +46,6 @@ const SkillForm: React.FC<{ mode: Mode }> = ({ mode }) => {
   const [shortDesc, setShortDesc] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<SkillCategory | null>(null);
-  const [tags, setTags] = useState<string[]>([]);
   const [zip, setZip] = useState<File | null>(null);
   const [avatar, setAvatar] = useState<File | null>(null);
   const [changelogNote, setChangelogNote] = useState('');
@@ -42,6 +54,10 @@ const SkillForm: React.FC<{ mode: Mode }> = ({ mode }) => {
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [loadState, setLoadState] = useState<LoadState>(mode === 'edit' ? 'loading' : 'ready');
+
+  // Publishing unit, people in charge, usage guide and tags — identical contract in both
+  // workspaces, so the state, prefill and validation live in one shared hook.
+  const meta = useItemMetaFields();
 
   // Edit mode: load the package, guard permission + pending, prefill metadata.
   useEffect(() => {
@@ -60,18 +76,19 @@ const SkillForm: React.FC<{ mode: Mode }> = ({ mode }) => {
           setShortDesc(rep.short_description);
           setCategoryId(rep.category_id ?? resolveCategoryId(rep.category_detail ?? rep.category));
           setSelectedCategory(rep.category_detail ?? rep.category ?? null);
-          setTags(rep.tags ?? []);
           setExistingAvatarUrl(rep.avatar_url ?? null);
           setCurrentZipName(rep.file?.name ?? null);
         }
+        meta.prefill(data, rep);
         setLoadState('ready');
       })
       .catch(() => { if (!cancelled) setLoadState('error'); });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, id, packageId]);
 
   const validate = (): FormErrors => {
-    const errs: FormErrors = {};
+    const errs: FormErrors = { ...meta.validate(mode) };
     if (!name.trim()) errs.name = 'Tên là bắt buộc';
     if (!shortDesc.trim()) errs.shortDesc = 'Mô tả ngắn là bắt buộc';
     if (categoryId == null) errs.category = 'Category là bắt buộc';
@@ -98,7 +115,7 @@ const SkillForm: React.FC<{ mode: Mode }> = ({ mode }) => {
           name: name.trim(),
           short_description: shortDesc.trim(),
           category_id: categoryId!,
-          tags,
+          ...meta.toPayload(),
         };
 
         if (mode === 'edit') {
@@ -120,7 +137,7 @@ const SkillForm: React.FC<{ mode: Mode }> = ({ mode }) => {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, packageId, name, shortDesc, categoryId, tags, zip, avatar, changelogNote, existingAvatarUrl],
+    [mode, packageId, name, shortDesc, categoryId, zip, avatar, changelogNote, existingAvatarUrl, meta],
   );
 
   if (loadState !== 'ready') {
@@ -145,8 +162,25 @@ const SkillForm: React.FC<{ mode: Mode }> = ({ mode }) => {
           shortDesc={shortDesc} setShortDesc={setShortDesc}
           categoryId={categoryId} setCategoryId={setCategoryId}
           selectedCategory={selectedCategory}
-          tags={tags} setTags={setTags}
+          tagIds={meta.tagIds} setTagIds={meta.setTagIds}
+          selectedTags={meta.selectedTags}
           errors={errors}
+        />
+
+        <OwnershipCard
+          publisherId={meta.publisherId} setPublisherId={meta.setPublisherId}
+          selectedPublisher={meta.selectedPublisher}
+          responsibleIds={meta.responsibleIds} setResponsibleIds={meta.setResponsibleIds}
+          selectedResponsibles={meta.selectedResponsibles}
+          errors={errors}
+        />
+
+        <UsageGuideCard
+          mode={mode}
+          value={meta.usageGuideHtml}
+          onChange={meta.setUsageGuideHtml}
+          uploadImage={uploadFileToStrapi}
+          error={errors.guide}
         />
 
         <FilesCard

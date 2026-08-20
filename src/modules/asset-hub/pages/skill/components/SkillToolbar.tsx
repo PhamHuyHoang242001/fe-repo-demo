@@ -1,13 +1,15 @@
 // Elevated, sticky, frosted filter toolbar for the published list.
-// Controls are antd (Input search + Select + tags-mode Select), themed to ah-* via ConfigProvider.
+// Controls are antd (Input search + Select), themed to ah-* via ConfigProvider.
 // Emits settled filter values (search is debounced internally). Sort reorders only loaded items —
 // the list API has no sort param, so sort stays client-side.
+// Tag matching is folded into `search` (substring on catalog tag name) — no discrete tag/kind filter.
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Input, Select } from 'antd';
 import { useDebounce } from '../hooks/useDebounce';
 import { SURFACE_GLASS } from '../../../theme/surfaces';
 import CategorySelect from '../../../components/CategorySelect';
+import PublisherSelect from '../../../components/PublisherSelect';
 
 const SearchIcon: React.FC = () => (
   <svg className="h-4 w-4 text-ah-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -31,7 +33,7 @@ export type SortKey = 'newest' | 'name' | 'version';
 export interface SkillFilters {
   search: string;
   categoryId: number | null;
-  tags: string[];
+  publisherId: number | null;
   sort: SortKey;
 }
 
@@ -51,7 +53,7 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({ onFilterChange, coun
   const [searchRaw, setSearchRaw] = useState('');
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [sort, setSort] = useState<SortKey>('newest');
-  const [tags, setTags] = useState<string[]>([]);
+  const [publisherId, setPublisherId] = useState<number | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -68,9 +70,9 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({ onFilterChange, coun
   const searchDebounced = useDebounce(searchRaw, 350);
 
   React.useEffect(() => {
-    onFilterChange({ search: searchDebounced, categoryId, tags, sort });
+    onFilterChange({ search: searchDebounced, categoryId, publisherId, sort });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchDebounced, categoryId, tags, sort]);
+  }, [searchDebounced, categoryId, publisherId, sort]);
 
   return (
     <div
@@ -80,14 +82,14 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({ onFilterChange, coun
       }`}
     >
       <div className="flex flex-wrap items-center gap-2.5">
-        {/* Search */}
+        {/* Search also matches catalog tag names (substring, case-insensitive). */}
         <Input
           allowClear
           size="large"
           prefix={<SearchIcon />}
           value={searchRaw}
           onChange={(e) => setSearchRaw(e.target.value)}
-          placeholder="Tìm kiếm skill…"
+          placeholder="Tìm skill, mô tả hoặc tag…"
           className="min-w-[220px] flex-1"
         />
 
@@ -112,18 +114,12 @@ export const SkillToolbar: React.FC<SkillToolbarProps> = ({ onFilterChange, coun
           options={SORT_OPTIONS}
         />
 
-        {/* Tags — free-form chips */}
-        <Select
-          mode="tags"
-          value={tags}
-          onChange={(v) => setTags(v.map((t) => t.trim().toLowerCase()).filter(Boolean))}
-          size="large"
-          className="min-w-[180px] flex-1"
-          placeholder="Thêm tag…"
-          tokenSeparators={[',']}
-          maxTagCount="responsive"
-          suffixIcon={null}
-          aria-label="Tags"
+        {/* Publishing unit */}
+        <PublisherSelect
+          value={publisherId}
+          onChange={setPublisherId}
+          placeholder="Mọi đơn vị"
+          className="min-w-[180px]"
         />
 
         {typeof count === 'number' && (

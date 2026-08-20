@@ -85,14 +85,23 @@ const PublishedList: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<FiltersState>({ search: '', categoryId: null, tags: [], sort: 'newest' });
+  const [filters, setFilters] = useState<FiltersState>({
+    search: '',
+    categoryId: null,
+    publisherId: null,
+    sort: 'newest',
+  });
 
   // Stable ref to latest filters for use inside loadMore callback.
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
   // Server-relevant filter key — excludes `sort` (sort is client-side, must NOT trigger a refetch).
-  const serverKey = JSON.stringify({ s: filters.search, c: filters.categoryId, t: filters.tags });
+  const serverKey = JSON.stringify({
+    s: filters.search,
+    c: filters.categoryId,
+    p: filters.publisherId,
+  });
 
   const hasMore = items.length < total;
 
@@ -111,13 +120,13 @@ const PublishedList: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const { search, categoryId, tags } = currentFilters;
+      const { search, categoryId, publisherId } = currentFilters;
       const res = await listPrompts({
         page: nextPage,
         limit: PAGE_LIMIT,
         ...(search ? { search } : {}),
         ...(categoryId != null ? { category_id: categoryId } : {}),
-        ...(tags.length ? { tags } : {}),
+        ...(publisherId != null ? { publisher_id: publisherId } : {}),
       });
       setTotal(res.meta.total);
       setItems((prev) => (replace ? res.data : [...prev, ...res.data]));

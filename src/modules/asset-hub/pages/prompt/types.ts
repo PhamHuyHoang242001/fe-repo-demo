@@ -17,6 +17,7 @@ export interface Paginated<T> {
 // ---- Category ------------------------------------------------------------------
 
 import type { AssetHubCategory, AssetHubCategoryValue, AssetHubCategoryType } from '../../types/category';
+import type { PublisherRef, ResponsibleUser, TagRef } from '../../types/catalog';
 
 export type PromptCategoryType = Extract<AssetHubCategoryType, 'prompt'>;
 export type PromptCategory = AssetHubCategoryValue;
@@ -36,7 +37,12 @@ export interface PromptVersion {
   category_id: number | null;
   category: PromptCategory;
   category_detail?: PromptCategoryRef | null;
-  tags: string[];
+  /** Catalog tags attached to this version. Objects, not strings — the id drives filters and the
+   *  kind drives the chip colour. */
+  tags: TagRef[];
+  /** Sanitized usage-guide HTML. Present ONLY on item detail and version detail; every list,
+   *  review-queue and version-management row omits it (it can run to 200k characters). */
+  usage_guide_html?: string;
   /** Strapi URL of the avatar image. Null when no avatar is set. */
   avatar_url?: string | null;
   prompt_content: string;
@@ -60,6 +66,12 @@ export interface PromptPackage {
   status: 'active' | 'inactive';
   created_by: number;
   active_version?: PromptVersion | null;
+  /** Publishing unit (package-scoped). Null only if the row was deleted from the catalog. */
+  publisher?: PublisherRef | null;
+  /** People in charge (package-scoped, full-replace on every write). */
+  responsible_users?: ResponsibleUser[];
+  /** Publishing unit id — carried on the raw package row; prefer `publisher` for display. */
+  publisher_id?: number;
 }
 
 // ---- Version management (flat 1-row-per-version list) --------------------------
@@ -74,6 +86,8 @@ export interface VersionRow {
   old_version: number | null;
   version_no: number;
   state: 'pending' | 'approved' | 'rejected';
+  /** Catalog tags of this version (batched by the BE onto the raw projection). */
+  tags: TagRef[];
   submitted_by_email: string | null;
   created_at: string;
   /** Version icon URL (BE column avatar_url). Null when none was uploaded. */
@@ -135,7 +149,9 @@ export interface PromptDiff {
     avatar_url: string | null;
     category_id: number | null;
     category: PromptCategory;
-    tags: string[];
+    tags: TagRef[];
+    /** Sanitized usage-guide HTML of the version under review (this endpoint is 403-gated). */
+    usage_guide_html?: string;
     changelog_note: string | null;
     submitted_by: number;
     /** Resolved email of the submitter (BE joins users). Null if unresolved. Prefer over the raw id. */
@@ -145,7 +161,10 @@ export interface PromptDiff {
 }
 
 export interface PromptVersionDetail {
-  package: Pick<PromptPackage, 'id' | 'code' | 'status' | 'active_version_id' | 'created_by'>;
+  package: Pick<
+    PromptPackage,
+    'id' | 'code' | 'status' | 'active_version_id' | 'created_by' | 'publisher' | 'responsible_users'
+  >;
   version: PromptVersion;
   comparison: null | {
     base_version_id: number | null;
@@ -165,7 +184,8 @@ export interface MyPromptPermissions {
 
 // ---- Workspace stats -----------------------------------------------------------
 
-/** Dashboard counters for the whole Prompt workspace (BE GET /prompt/stats → { data }).
+/** Dashboard counters for one workspace. Served by GET /asset-hub/stats, which returns a row per
+ *  workspace in a single response — see `WorkspaceStatRow` in types/catalog.
  *  `total` = distinct live packages (one per package, counted by its latest version state), so
  *  `pending + approved + rejected === total`. `published` is separate: packages whose active
  *  version is approved + status=active (may differ from `approved` when a newer draft is pending). */

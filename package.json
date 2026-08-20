@@ -16,6 +16,9 @@
     "dependencies": {
         "@loadable/component": "^5.16.3",
         "@reduxjs/toolkit": "^2.2.1",
+        "@tiptap/extension-image": "^3.30.2",
+        "@tiptap/react": "^3.30.2",
+        "@tiptap/starter-kit": "^3.30.2",
         "@types/react-loadable": "^5.5.11",
         "@types/react-router-dom": "^5.3.3",
         "antd": "^5.29.3",

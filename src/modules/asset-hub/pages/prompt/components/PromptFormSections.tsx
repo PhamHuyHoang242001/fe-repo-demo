@@ -7,7 +7,9 @@ import { Link } from 'react-router-dom';
 import { Input } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PromptCategory } from '../types';
-import { Field, TagInput } from './UploadFormHelpers';
+import { Field } from './UploadFormHelpers';
+import type { TagRef } from '../../../types/catalog';
+import { PromptTagField } from './PromptFormMetaSections';
 import AvatarPicker from './AvatarPicker';
 import CategorySelect from '../../../components/CategorySelect';
 import { StaggerList, StaggerItem, Reveal } from './motion-primitives';
@@ -95,12 +97,14 @@ interface MainFieldsProps {
   shortDesc: string; setShortDesc: (v: string) => void;
   categoryId: number | null; setCategoryId: (v: number | null) => void;
   selectedCategory?: PromptCategory;
-  tags: string[]; setTags: (v: string[]) => void;
+  tagIds: number[]; setTagIds: (v: number[]) => void;
+  selectedTags: TagRef[];
   errors: { name?: string; shortDesc?: string; category?: string };
 }
 
 export const MainFieldsCard: React.FC<MainFieldsProps> = ({
-  name, setName, shortDesc, setShortDesc, categoryId, setCategoryId, selectedCategory, tags, setTags, errors,
+  name, setName, shortDesc, setShortDesc, categoryId, setCategoryId, selectedCategory,
+  tagIds, setTagIds, selectedTags, errors,
 }) => (
   <motion.div
     variants={fadeInUp}
@@ -136,9 +140,7 @@ export const MainFieldsCard: React.FC<MainFieldsProps> = ({
         </Field>
       </StaggerItem>
       <StaggerItem>
-        <Field label="Tags (tùy chọn)">
-          <TagInput tags={tags} onChange={setTags} />
-        </Field>
+        <PromptTagField tagIds={tagIds} setTagIds={setTagIds} selectedTags={selectedTags} />
       </StaggerItem>
     </StaggerList>
   </motion.div>

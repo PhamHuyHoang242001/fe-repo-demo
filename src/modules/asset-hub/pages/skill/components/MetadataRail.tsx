@@ -3,6 +3,7 @@
 // Narrow-column friendly: label above, value below.
 
 import React from 'react';
+import TagChip from '../../../components/TagChip';
 import type { SkillPackageDetail } from '../types';
 import { formatDate } from '../utils/format';
 import { StaggerList, StaggerItem } from './motion-primitives';
@@ -56,11 +57,25 @@ const MetadataRail: React.FC<MetadataRailProps> = ({ pkg }) => {
           <Row label="Tags">
             <div className="mt-1 flex flex-wrap gap-1">
               {v.tags.map((t) => (
+                <TagChip key={t.id} tag={t} hash />
+              ))}
+            </div>
+          </Row>
+        )}
+
+        {/* Publishing unit and people in charge are package-scoped — they describe who owns the
+            artifact, as opposed to "Người đăng", who merely submitted this version. */}
+        <Row label="Đơn vị phát hành">{pkg.publisher?.name ?? '—'}</Row>
+
+        {pkg.responsible_users && pkg.responsible_users.length > 0 && (
+          <Row label="Người chịu trách nhiệm">
+            <div className="mt-1 flex flex-wrap gap-1">
+              {pkg.responsible_users.map((u) => (
                 <span
-                  key={t}
-                  className="rounded-full border border-ah-line bg-ah-pale px-2 py-0.5 text-[11px] font-medium text-ah-muted"
+                  key={u.id}
+                  className="break-all rounded-full border border-ah-line bg-ah-pale px-2 py-0.5 text-[11px] font-medium text-ah-muted"
                 >
-                  #{t}
+                  {u.email}
                 </span>
               ))}
             </div>

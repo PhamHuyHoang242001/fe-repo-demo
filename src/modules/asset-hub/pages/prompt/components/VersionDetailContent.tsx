@@ -6,6 +6,7 @@ import { MetaRow, StateBadge } from './ReviewShared';
 import { CARD_BASE } from '../../../theme/surfaces';
 import { fadeInUp } from '../../../theme/motion';
 import { resolveCategoryLabel } from '../../../utils/category';
+import ArtifactContentTabs from '../../../components/ArtifactContentTabs';
 
 interface Props {
   detail: PromptVersionDetail;
@@ -20,7 +21,13 @@ const VersionDetailContent: React.FC<Props> = ({ detail }) => {
           <MetaRow label="Mã package" value={pkg.code ?? `#${pkg.id}`} />
           <MetaRow label="Danh mục" value={resolveCategoryLabel(version.category)} />
           <MetaRow label="Mô tả" value={version.short_description || '—'} />
-          <MetaRow label="Tags" value={version.tags.length ? version.tags.join(', ') : '—'} />
+          {/* Plain text row (not chips) — tags are catalog objects now, so join their names. */}
+          <MetaRow label="Tags" value={version.tags.length ? version.tags.map((t) => t.name).join(', ') : '—'} />
+          <MetaRow label="Đơn vị phát hành" value={pkg.publisher?.name ?? '—'} />
+          <MetaRow
+            label="Người chịu trách nhiệm"
+            value={pkg.responsible_users?.length ? pkg.responsible_users.map((u) => u.email).join(', ') : '—'}
+          />
           <MetaRow label="Người gửi" value={version.submitted_by_email ?? `#${version.submitted_by}`} />
           <MetaRow label="Ngày gửi" value={new Date(version.created_at).toLocaleString('vi-VN')} />
           {version.changelog_note && <MetaRow label="Thay đổi" value={version.changelog_note} />}
@@ -36,29 +43,35 @@ const VersionDetailContent: React.FC<Props> = ({ detail }) => {
         </div>
       </motion.div>
 
-      {version.state === 'pending' && comparison && (
-        <section className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-extrabold text-ah-ink">Kiểm tra thay đổi</h2>
-            <span className="text-xs text-ah-muted">
-              {comparison.base_version_no == null ? 'Phiên bản đầu tiên' : `So với v${comparison.base_version_no}`}
-            </span>
-          </div>
-          <DiffView base={comparison.base} incoming={comparison.incoming} />
-        </section>
-      )}
-
-      {version.state !== 'pending' && (
-        <motion.section variants={fadeInUp} initial="hidden" animate="show" className={`${CARD_BASE} px-5 py-4`}>
-          <div className="mb-3 flex items-center gap-2">
-            <StateBadge state={version.state} />
-            <span className="text-sm font-bold text-ah-ink">Nội dung phiên bản</span>
-          </div>
-          <pre className="max-h-[640px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-ah-pale p-4 font-mono text-[13px] text-ah-ink">
-            {version.prompt_content || 'Không có nội dung prompt.'}
-          </pre>
-        </motion.section>
-      )}
+      {/* Guide first, then the artifact itself — a pending version shows its diff, a settled one
+          its stored prompt text. Version detail is one of the two surfaces that carry the guide. */}
+      <ArtifactContentTabs
+        guideHtml={version.usage_guide_html}
+        previewLabel={version.state === 'pending' ? 'Thay đổi' : 'Nội dung'}
+        preview={
+          version.state === 'pending' && comparison ? (
+            <section className="flex flex-col gap-2.5">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-extrabold text-ah-ink">Kiểm tra thay đổi</h2>
+                <span className="text-xs text-ah-muted">
+                  {comparison.base_version_no == null ? 'Phiên bản đầu tiên' : `So với v${comparison.base_version_no}`}
+                </span>
+              </div>
+              <DiffView base={comparison.base} incoming={comparison.incoming} />
+            </section>
+          ) : (
+            <section>
+              <div className="mb-3 flex items-center gap-2">
+                <StateBadge state={version.state} />
+                <span className="text-sm font-bold text-ah-ink">Nội dung phiên bản</span>
+              </div>
+              <pre className="max-h-[640px] overflow-auto whitespace-pre-wrap break-words rounded-xl bg-ah-pale p-4 font-mono text-[13px] text-ah-ink">
+                {version.prompt_content || 'Không có nội dung prompt.'}
+              </pre>
+            </section>
+          )
+        }
+      />
     </div>
   );
 };

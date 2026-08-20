@@ -4,6 +4,7 @@
 // Animation: MotionCard (staggerItem variant + hoverLift). Glow border on hover.
 
 import React from 'react';
+import TagChip from '../../../components/TagChip';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { PromptListItem } from '../types';
@@ -109,12 +110,8 @@ const PromptCard: React.FC<PromptCardProps> = ({ prompt }) => {
       {v.tags.length > 0 && (
         <div className="mt-auto flex flex-wrap gap-1">
           {v.tags.slice(0, 4).map((tag) => (
-            <motion.span
-              key={tag}
-              {...hoverPress}
-              className="rounded-full border border-ah-line bg-ah-pale px-2 py-0.5 text-[10px] font-medium text-ah-muted transition-colors hover:border-ah-green/40 hover:text-ah-green-d"
-            >
-              {tag}
+            <motion.span key={tag.id} {...hoverPress}>
+              <TagChip tag={tag} className="text-[10px]" />
             </motion.span>
           ))}
           {v.tags.length > 4 && (

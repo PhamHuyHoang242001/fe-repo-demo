@@ -4,6 +4,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import TagChip from '../../../components/TagChip';
 import type { SkillPackageDetail } from '../types';
 import { SURFACE_HERO } from '../../../theme/surfaces';
 import { fadeInUp, hoverPress } from '../../../theme/motion';
@@ -106,10 +107,14 @@ const DetailHero: React.FC<DetailHeroProps> = ({ pkg }) => {
               <span className="rounded-md bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white ring-1 ring-white/20">
                 {resolveCategoryLabel(v.category)}
               </span>
-              {v.tags.map((t) => (
-                <span key={t} className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/90">
-                  #{t}
+              {/* Publishing unit sits beside the category: both answer "what is this and whose". */}
+              {pkg.publisher && (
+                <span className="rounded-md bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white ring-1 ring-white/20">
+                  {pkg.publisher.name}
                 </span>
+              )}
+              {v.tags.map((t) => (
+                <TagChip key={t.id} tag={t} variant="onDark" hash />
               ))}
               <span className="ml-1 text-[11px] text-white/65">Cập nhật {formatDate(v.updated_at)}</span>
             </div>

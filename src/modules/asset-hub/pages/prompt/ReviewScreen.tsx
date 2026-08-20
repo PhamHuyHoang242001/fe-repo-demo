@@ -5,6 +5,8 @@
 // Visual: full-frame frosted panels, antd Buttons, framer-motion entrances.
 
 import React, { useState, useEffect } from 'react';
+import TagChip from '../../components/TagChip';
+import ArtifactContentTabs from '../../components/ArtifactContentTabs';
 import { Button } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import { diff as fetchDiff, approve } from './api/promptApi';
@@ -51,7 +53,7 @@ const MetaPanel: React.FC<{ meta: PromptDiff['metadata'] }> = ({ meta }) => (
             <MetaRow label="Tags" value={
               <div className="flex flex-wrap gap-1">
                 {meta.tags.map((t) => (
-                  <span key={t} className="rounded-full border border-ah-line bg-ah-card px-2 py-0.5 text-[11px] text-ah-muted">{t}</span>
+                  <TagChip key={t.id} tag={t} />
                 ))}
               </div>
             } />
@@ -175,7 +177,14 @@ const ReviewScreen: React.FC<ReviewScreenProps> = ({ versionId, canApprove, onBa
       </Reveal>
 
       <MetaPanel meta={meta} />
-      <DiffView base={diffData!.base} incoming={diffData!.incoming} />
+
+      {/* Guide first so a reviewer reads what the author documented before judging the diff.
+          The tabs sit ABOVE the action bar, so Duyệt/Từ chối stay visible on either tab. */}
+      <ArtifactContentTabs
+        guideHtml={meta.usage_guide_html}
+        previewLabel="Thay đổi"
+        preview={<DiffView base={diffData!.base} incoming={diffData!.incoming} />}
+      />
 
       {canApprove && (
         <ActionBar

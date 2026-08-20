@@ -36,7 +36,6 @@ import type {
   ListVersionsParams,
   VersionCodeOption,
   SkillVersionDetail,
-  WorkspaceStats,
 } from '../types';
 
 // Convenience helper — keeps call sites concise.
@@ -80,9 +79,19 @@ export interface UploadNewPayload {
   name: string;
   short_description: string;
   category_id: number;
-  tags?: string[];
+  /** Publishing unit — required by the BE on both create and update. */
+  publisher_id: number;
+  /** People in charge — required, at least one, full-replace on every write. */
+  responsible_user_ids: number[];
+  /** Sanitized guide HTML. Required non-empty on create; may be '' on an update. */
+  usage_guide_html: string;
+  /** Catalog tag ids (must belong to the skill workspace). */
+  tag_ids?: number[];
 }
 
+/** An update is the ONLY edit surface: package metadata (publisher / people in charge) travels
+ *  with the new version and is applied in the same backend transaction. There is no metadata-only
+ *  endpoint, which is why this extends the create payload rather than narrowing it. */
 export interface UploadUpdatePayload extends UploadNewPayload {
   changelog_note?: string;
 }
@@ -115,9 +124,10 @@ export function list(
   params: {
     page?: number;
     limit?: number;
+    /** Keyword matching name, short description, or catalog tag name. */
     search?: string;
     category_id?: number;
-    tags?: string[];
+    publisher_id?: number;
   } = {},
 ): Promise<Paginated<SkillListItem>> {
   return axios.get(url('/items'), { params }).then((res) => res.data);
@@ -218,9 +228,5 @@ export function myPermissions(): Promise<MySkillPermissions> {
 }
 
 // ---- Stats ---------------------------------------------------------------------
-
-/** Whole-workspace Skill dashboard counters (total/pending/approved/rejected/published).
- *  BE wraps the payload in `{ data }`; unwrap to the flat counters for the caller. */
-export function stats(): Promise<WorkspaceStats> {
-  return axios.get(url('/stats')).then((res) => res.data.data);
-}
+// Workspace counters now come from GET /asset-hub/stats (one request covering both workspaces).
+// See api/catalogApi.ts → hubStats().

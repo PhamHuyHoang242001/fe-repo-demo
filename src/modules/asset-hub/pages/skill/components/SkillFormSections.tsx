@@ -7,10 +7,12 @@ import { Link } from 'react-router-dom';
 import { Input } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { SkillCategory } from '../types';
-import { Field, TagInput } from './UploadFormHelpers';
+import type { TagRef } from '../../../types/catalog';
+import { Field } from './UploadFormHelpers';
 import ZipDropzone from './ZipDropzone';
 import AvatarPicker from './AvatarPicker';
 import CategorySelect from '../../../components/CategorySelect';
+import { SkillTagField } from './SkillFormMetaSections';
 import { StaggerList, StaggerItem, Reveal } from './motion-primitives';
 import { CARD_BASE } from '../../../theme/surfaces';
 import { scaleIn, fadeInUp, springSoft } from '../../../theme/motion';
@@ -96,12 +98,14 @@ interface MainFieldsProps {
   shortDesc: string; setShortDesc: (v: string) => void;
   categoryId: number | null; setCategoryId: (v: number | null) => void;
   selectedCategory?: SkillCategory;
-  tags: string[]; setTags: (v: string[]) => void;
+  tagIds: number[]; setTagIds: (v: number[]) => void;
+  selectedTags: TagRef[];
   errors: { name?: string; shortDesc?: string; category?: string };
 }
 
 export const MainFieldsCard: React.FC<MainFieldsProps> = ({
-  name, setName, shortDesc, setShortDesc, categoryId, setCategoryId, selectedCategory, tags, setTags, errors,
+  name, setName, shortDesc, setShortDesc, categoryId, setCategoryId, selectedCategory,
+  tagIds, setTagIds, selectedTags, errors,
 }) => (
   <motion.div
     variants={fadeInUp}
@@ -137,9 +141,7 @@ export const MainFieldsCard: React.FC<MainFieldsProps> = ({
         </Field>
       </StaggerItem>
       <StaggerItem>
-        <Field label="Tags (tùy chọn)">
-          <TagInput tags={tags} onChange={setTags} />
-        </Field>
+        <SkillTagField tagIds={tagIds} setTagIds={setTagIds} selectedTags={selectedTags} />
       </StaggerItem>
     </StaggerList>
   </motion.div>
