@@ -27,6 +27,12 @@ export type SkillCategoryRef = AssetHubCategory;
 
 /** The skill .zip as a single file object, mirroring the diagnostic report's `file` field.
  *  Null when the version has no zip row. */
+export interface ZipTreeNode {
+  path: string;
+  isDir: boolean;
+  size: number | null;
+}
+
 export interface SkillFile {
   file_url: string;
   name: string | null;
@@ -57,6 +63,8 @@ export interface SkillVersion {
   /** Strapi URL of the avatar image. Null when no avatar is set. */
   avatar_url?: string | null;
   skill_md_content: string;
+  /** ZIP folder listing captured at submit. Null on versions created before the column existed. */
+  zip_tree?: ZipTreeNode[] | null;
   changelog_note: string | null;
   submitted_by: number;
   /** Resolved email of the submitter (BE joins users). Null if unresolved. Prefer over the raw id. */
